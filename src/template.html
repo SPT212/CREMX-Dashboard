@@ -717,8 +717,8 @@ const LEGENDS={
 };
 
 /* ===== Toggle pills =======================================================
-   One hide-set per surface (loan tape, each change-log table, each map colour
-   mode), one painter, one document-level click handler. A hidden pill is dashed
+   One hide-set per surface (loan tape, each map colour mode), one painter, one
+   document-level click handler. A hidden pill is dashed
    and struck through; "only" isolates one item; "Show all" appears only while
    something is hidden. Counts are of the rows the pill would show. */
 const CH_HIDE={},CH_LIST={},CH_REDRAW={};
@@ -1527,40 +1527,27 @@ document.getElementById('rollFoot').innerHTML=mets.map(m=>
 /* html() is handed (row,index) so each table can render its own 1..N handle in the
    leading cell; the empty-state colspan is read off the live header count so it
    tracks the added # column without being restated. */
-/* Optional 5th/6th arguments turn a table interactive:
-   stOf(row)  -> the row's Status, which feeds the toggle pills above the table;
+/* Optional 5th argument turns a table interactive:
    noteOf(row)-> HTML for a hidden second row that one click opens and closes
-                 (Enter/Space too), so long text needs no wide column. */
-function fill(tid,rows,html,emptyMsg,stOf,noteOf){
+                 (Enter/Space too), so long text needs no wide column.
+   Status toggle pills are kept to the map and the loan tape; the change-log
+   tables always list every row. */
+function fill(tid,rows,html,emptyMsg,noteOf){
   const t=document.getElementById(tid),tb=t?t.querySelector('tbody'):null;
   if(!tb)return;
   const cols=t.querySelectorAll('thead th').length;
-  let pills=null;
-  if(stOf){
-    pills=document.getElementById(tid+'Pills');
-    if(!pills){pills=document.createElement('div');pills.className='legend chpills';pills.id=tid+'Pills';pills.hidden=true;
-      t.parentNode.insertBefore(pills,t);}
-  }
   const draw=()=>{
-    let vis=rows;
-    if(stOf){
-      const counts={};rows.forEach(r=>{const k=stOf(r);counts[k]=(counts[k]||0)+1;});
-      paintPills(pills,tid,ST_ITEMS,counts);
-      const hid=hideSet(tid);
-      if(hid.size)vis=rows.filter(r=>!hid.has(stOf(r)));
-    }
-    if(!vis.length){
-      tb.innerHTML=`<tr><td colspan="${cols}"><div class="ch-none">${rows.length?'Every status is hidden. Use <b>Show all</b> above the table.':emptyMsg}</div></td></tr>`;
+    if(!rows.length){
+      tb.innerHTML=`<tr><td colspan="${cols}"><div class="ch-none">${emptyMsg}</div></td></tr>`;
       return;
     }
-    tb.innerHTML=vis.map((r,i)=>{
+    tb.innerHTML=rows.map((r,i)=>{
       const row=html(r,i);
       if(!noteOf)return row;
       return row.replace(/^\s*<tr>/,'<tr class="clickrow" tabindex="0" aria-expanded="false">')
         +`<tr class="noterow" style="display:none"><td colspan="${cols}"><div class="notebox">${noteOf(r)}</div></td></tr>`;
     }).join('');
   };
-  if(stOf)CH_REDRAW[tid]=draw;
   if(noteOf&&!tb.dataset.wired){
     tb.dataset.wired='1';
     const toggle=tr=>{const nr=tr.nextElementSibling;if(!nr||!nr.classList.contains('noterow'))return;
@@ -1608,7 +1595,7 @@ fill('tMig',migs,(m,i)=>`<tr>
   <td class="ctr">${migCell(m.p.status,m.l.status,ST_ORDER)}</td>
   <td class="ctr">${migCell(m.p.dq,m.l.dq,DQ_ORDER)}</td>
   <td class="ctr"><span class="dirc ${m.dir>0?'worse':m.dir<0?'better':'side'}">${m.dir>0?'Deteriorated':m.dir<0?'Improved':'Lateral'}</span></td></tr>`,
- 'No status or delinquency changes this period.',m=>m.l.status,m=>noteFor(m.l));
+ 'No status or delinquency changes this period.',m=>noteFor(m.l));
 
 /* ---- additions ----------------------------------------------------------- */
 /* "New origination" vs "Newly reported" is decided by the origination date on the
@@ -1630,7 +1617,7 @@ fill('tAdd',adds,(l,i)=>{
   <td class="ctr mono">${fmtDate(l.maturity)}</td>
   <td class="clip" title="${esc(l.orig)}">${esc(l.orig)}</td>
   <td class="ctr"><span class="ch-tag ${isNew?'new':''}" title="Originated ${fmtDate(l.orig_date)}">${isNew?'New origination':'Newly reported'}</span></td></tr>`;},
- 'No positions added this period.',l=>l.status,noteFor);
+ 'No positions added this period.',noteFor);
 
 /* ---- removals ------------------------------------------------------------ */
 /* The tape carries no disposition field, so this reports only that the position
@@ -1645,7 +1632,7 @@ fill('tRem',rems,(p,i)=>`<tr>
   <td class="ctr"><span class="pill ${ST_CLS[p.status]||'p-other'}">${esc(p.status)}</span></td>
   <td class="num ctr">${fmt$(p.basis)}</td>
   <td class="num ctr">${fmt$(p.tla)}</td></tr>`,
- 'No positions removed this period.',p=>p.status);
+ 'No positions removed this period.');
 
 /* ---- maturity changes ---------------------------------------------------- */
 const matMoves=cont.filter(l=>l.maturity!==PR[l.id].maturity)
@@ -1660,7 +1647,7 @@ fill('tMat',matMoves,(m,i)=>`<tr>
   <td class="num ctr">${fmt$(m.l.basis)}</td>
   <td class="ctr mono dpair"><span class="mig"><span style="color:var(--muted)">${fmtDate(m.p.maturity)}</span><span class="arw">\u2192</span>${fmtDate(m.l.maturity)}</span></td>
   <td class="num ctr"><span class="chg-num ${m.d>0?'up':'dn'}">${m.d>0?'+':'\u2212'}${Math.abs(m.d)}d</span></td></tr>`,
- 'No maturity dates restated this period.',m=>m.l.status,m=>noteFor(m.l));
+ 'No maturity dates restated this period.',m=>noteFor(m.l));
 
 /* ---- basis movements ----------------------------------------------------- */
 const big=moves.filter(x=>Math.abs(x.d)>=MATERIAL).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d));
@@ -1675,7 +1662,7 @@ fill('tMov',big,(x,i)=>`<tr>
   <td class="num ctr">${fmt$(x.l.basis)}</td>
   <td class="num ctr">${pct(x.l.adv)}</td>
   <td class="ctr"><span class="pill ${ST_CLS[x.l.status]||'p-other'}">${esc(x.l.status)}</span></td></tr>`,
- 'No Basis movement on continuing positions.',x=>x.l.status,x=>noteFor(x.l));
+ 'No Basis movement on continuing positions.',x=>noteFor(x.l));
 
 /* ---- commentary ---------------------------------------------------------- */
 /* Detected by comparing the hash of the current note against the hash carried in
@@ -1698,7 +1685,7 @@ fill('tCmt',cmts,(c,i)=>`<tr>
   <td class="ctr"><span class="ch-tag${c.kind==='New'?' new':''}">${c.kind}</span></td>
   <td class="ctr">${c.l.nupd?`<span class="nu mono">${fmtDateS(c.l.nupd)}</span>`:'<span class="nu-none">\u2014</span>'}</td>
   <td class="ch-note" title="${esc(c.l.notes)}">${esc(trunc(c.l.notes,150))}</td></tr>`,
- 'No commentary changed this period.',c=>c.l.status,c=>noteFor(c.l));
+ 'No commentary changed this period.',c=>noteFor(c.l));
 
 }catch(e){
   FAILURES.push(['Period-over-period changes',e]);

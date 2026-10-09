@@ -3,6 +3,8 @@
   font:600 12px/1 'Inter','Helvetica Neue',Arial,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(22,40,63,.25)}
 .upbtn:hover{background:var(--blue-d,#1F5589)}
 .upbtn[hidden]{display:none}
+/* on the dashboard the button sits in the header, right above the as-of date, right edges aligned */
+.stamp .upbtn{position:static;display:inline-block;margin:0 0 10px;box-shadow:none}
 dialog.updlg{border:1px solid var(--line2,#DDE3EB);border-radius:12px;padding:0;width:min(520px,94vw);color:var(--ink,#16283F);
   font:400 13px/1.5 'Inter','Helvetica Neue',Arial,sans-serif;box-shadow:0 24px 60px rgba(22,40,63,.3)}
 dialog.updlg::backdrop{background:rgba(22,40,63,.45)}
@@ -25,7 +27,7 @@ dialog.updlg button:disabled{opacity:.5;cursor:default}
 #histDlg .okc{color:#14603A;font-weight:600}#histDlg .rej{color:#A31F1F;font-weight:600}
 @media print{.upbtn{display:none!important}}
 </style>
-<button type="button" class="upbtn" id="upOpen" hidden>Upload new packet</button>
+<button type="button" class="upbtn" id="upOpen" hidden>Upload New Packet</button>
 <dialog class="updlg" id="upDlg">
   <form id="upForm" method="dialog">
     <h3>Upload new packet</h3>
@@ -56,6 +58,8 @@ dialog.updlg button:disabled{opacity:.5;cursor:default}
   if(!CTX.canUpload||location.protocol.indexOf('http')!==0)return;           // never in a local copy
   var open=$('upOpen'),dlg=$('upDlg'),form=$('upForm'),file=$('upFile'),asOfF=$('upAsOf'),pass=$('upPass'),msg=$('upMsg');
   var btns=['upUndo','upHist','upCancel','upGo'].map($);
+  var stamp=document.querySelector('header .stamp');
+  if(stamp)stamp.insertBefore(open,stamp.firstChild);                     // empty page: stays fixed top right
   open.hidden=false;
   function say(t,c){msg.textContent=t;msg.className=c||'';}
   function busy(b){btns.forEach(function(x){x.disabled=b;});}
