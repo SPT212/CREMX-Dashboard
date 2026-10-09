@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CREMX Portfolio Review — {{CURR_LABEL}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/v3.32.0/mapbox-gl.css">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.32.0/mapbox-gl.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  /* surfaces — cool institutional paper */
+  --canvas:#EDF0F4; --card:#FFFFFF; --card2:#F7F9FB;
+  /* ink — navy primary */
+  --ink:#16283F; --ink2:#4A5B72; --muted:#7C8B9E; --faint:#A6B2C1;
+  --line:#E9EDF2; --line2:#DDE3EB;
+  /* data blue — interaction and neutral measures only, never risk */
+  --blue:#2C6FB5;
+  --blue-d:#1F5589;
+  /* risk ramp — the ordered green → amber → red sequence the donuts use, and the
+     single source of colour for status, delinquency, maturity, advance bands,
+     pills, map markers and the performance split. */
+  --green:#1D7A4A; --olive:#6E9E3C;
+  --amber:#E2A712; --orange:#D2761C;
+  --red:#C22B2B; --red-d:#8C1A1A; --red-x:#5E1212;
+  /* legacy aliases so every rule below resolves to the ramp */
+  --teal:var(--green); --coral:var(--orange); --rose:var(--red); --violet:var(--red-x);
+  --shadow:0 1px 2px rgba(22,40,63,.04),0 6px 18px rgba(22,40,63,.05);
+  --sans:'Inter','Helvetica Neue',Helvetica,-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--canvas);color:var(--ink);font-family:var(--sans);font-size:13px;line-height:1.5;font-weight:400;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.wrap{max-width:1600px;margin:0 auto;padding:26px 26px 40px}
+.mono{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+/* Header */
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;
+  padding-bottom:16px;margin-bottom:22px;border-bottom:2px solid var(--ink)}
+.eyebrow{font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--blue-d);font-weight:600;margin-bottom:9px}
+h1{font-size:30px;font-weight:300;letter-spacing:-.6px;color:var(--ink);line-height:1.1}
+.sub{color:var(--ink2);font-size:12.5px;margin-top:8px;font-weight:400}
+.stamp{text-align:right;font-size:11px;color:var(--muted);line-height:1.75;font-weight:400}
+.stamp b{display:block;font-size:13px;color:var(--ink);letter-spacing:.1px;font-weight:600}
+
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-bottom:26px;
+  background:var(--card);border:1px solid var(--line2);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+.kpi{padding:18px 24px;border-right:1px solid var(--line);position:relative}
+.kpi:last-child{border-right:none}
+.kpi .lbl{font-size:9.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.kpi .val{font-size:27px;font-weight:300;margin-top:10px;color:var(--ink);letter-spacing:-.8px;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.kpi .note{font-size:10.5px;color:var(--muted);margin-top:6px;line-height:1.45;font-weight:400}
+.kpi .val.c-rose{color:var(--red)} .kpi .val.c-amber{color:#A87A0E}
+.kpi .accent{height:3px;width:28px;border-radius:2px;margin-top:11px;background:var(--blue)}
+.kpi.k-rose .accent{background:var(--red)} .kpi.k-amber .accent{background:var(--amber)} .kpi.k-teal .accent{background:var(--green)}
+
+/* Section titles */
+.sec-title{font-size:11px;font-weight:600;color:var(--ink);margin:8px 0 14px;display:flex;align-items:center;gap:12px;letter-spacing:1.4px;text-transform:uppercase}
+.sec-title .n{font-size:10px;color:#fff;background:var(--ink);font-weight:600;letter-spacing:.5px;
+  width:24px;height:24px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center}
+.sec-title .rule{flex:1;height:1px;background:var(--line2)}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--line2);border-radius:10px;box-shadow:var(--shadow);overflow:hidden}
+.card h2{font-size:12.5px;font-weight:600;padding:13px 16px;border-bottom:1px solid var(--line);color:var(--ink);
+  display:flex;justify-content:space-between;align-items:center;letter-spacing:-.1px}
+.card h2 .hint{font-size:10.5px;color:var(--muted);font-weight:400;letter-spacing:.2px}
+.card .body{padding:16px}
+
+/* Map */
+#map{height:582px;width:100%}
+.mapboxgl-map{font-family:var(--sans)}
+.map-note{position:absolute;left:12px;right:12px;bottom:12px;z-index:3;background:var(--card);border:1px solid var(--line2);border-radius:8px;padding:10px 13px;font-size:11.5px;color:var(--ink2);box-shadow:var(--shadow)}
+.mapbar{display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line);background:var(--card2)}
+.mapbar .grp{display:flex;align-items:center;gap:8px}
+.mapbar label{color:var(--muted);font-size:9.5px;text-transform:uppercase;letter-spacing:1.1px;font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:7px;overflow:hidden;background:var(--card)}
+.seg button{background:transparent;color:var(--ink2);border:none;border-right:1px solid var(--line2);padding:6px 13px;font-size:11.5px;
+  font-family:var(--sans);font-weight:500;cursor:pointer;transition:all .12s}
+.seg button:last-child{border-right:none}
+.seg button:hover{background:var(--card2);color:var(--ink)}
+.seg button.active{background:var(--blue);color:#fff}
+.chk{display:inline-flex;align-items:center;gap:7px;color:var(--ink2);font-size:11.5px;cursor:pointer;font-weight:400}
+.chk input{accent-color:var(--blue)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line);font-size:11px;color:var(--ink2);background:var(--card);font-weight:400}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .dot{width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(22,40,63,.18)}
+.legend .spacer{margin-left:auto;color:var(--faint)}
+
+/* Toggle pills (loan tape, change-log tables, map legend) */
+.chpills{gap:6px 8px;align-items:center;padding:10px 16px;border-top:none;border-bottom:1px solid var(--line);font-size:11px}
+.chpills[hidden]{display:none}                       /* .legend sets display:flex, which would override [hidden] */
+.legend .lgi{display:inline-flex;align-items:center;gap:0;border:1px solid var(--line2);border-radius:20px;background:var(--card);transition:all .12s}
+.legend .lg{display:inline-flex;align-items:center;gap:6px;background:none;border:none;padding:4px 6px 4px 9px;font:400 11px var(--sans);color:var(--ink2);cursor:pointer;border-radius:20px}
+.legend .lg .dot{background:var(--c)}
+.legend .lg-n{color:var(--muted);font-variant-numeric:tabular-nums;font-size:10.5px}
+.legend .lgi.off{background:var(--card2);border-style:dashed}
+.legend .lgi.off .lg{color:var(--faint);text-decoration:line-through}
+.legend .lgi.off .dot{background:transparent;border:2px solid var(--c);box-shadow:none}
+.legend .lg-only{background:none;border:none;border-left:1px solid var(--line2);padding:4px 9px 4px 7px;font:600 9.5px var(--sans);letter-spacing:.5px;text-transform:uppercase;color:var(--blue-d);cursor:pointer;opacity:.35}
+.legend .lgi:hover .lg-only,.legend .lg-only:focus-visible{opacity:1}
+.legend .lg-all{background:none;border:none;font:600 11px var(--sans);color:var(--blue-d);cursor:pointer;text-decoration:underline}
+.legend .lg:focus-visible,.legend .lg-only:focus-visible,.legend .lg-all:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.chwrap>.chpills{margin:0}
+tr.clickrow{cursor:pointer}
+table.chtbl tr.clickrow:hover td{background:#F4F7FB}
+table.chtbl tr.clickrow:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+table.chtbl tbody tr.noterow>td{white-space:normal;overflow:visible;text-overflow:clip}
+
+/* Map search control */
+.mapsearch{position:relative;overflow:visible!important}
+.mapsearch .ms-btn{display:flex;align-items:center;justify-content:center;color:var(--ink)}
+.mapsearch .ms-panel{position:absolute;left:38px;top:0;width:290px;background:var(--card);border:1px solid var(--line2);border-radius:8px;box-shadow:0 8px 24px rgba(22,40,63,.18);padding:6px;z-index:5}
+.mapsearch .ms-panel[hidden]{display:none}
+.mapsearch input{width:100%;box-sizing:border-box;border:1px solid var(--line2);border-radius:6px;padding:7px 9px;font:400 12px var(--sans);color:var(--ink)}
+.mapsearch ul{list-style:none;margin:4px 0 0;padding:0;max-height:300px;overflow:auto}
+.mapsearch li{padding:6px 8px;border-radius:5px;font-size:11.5px;color:var(--ink2);cursor:pointer;line-height:1.35}
+.mapsearch li span{display:block;color:var(--muted);font-size:10.5px}
+.mapsearch li.on,.mapsearch li:hover{background:#EFF4F9}
+.mapsearch li.none{color:var(--muted);cursor:default}
+
+/* Popup */
+.mapboxgl-popup-content{padding:0!important;width:328px;background:var(--card);color:var(--ink);border-radius:10px;border:1px solid var(--line2);box-shadow:0 12px 36px rgba(22,40,63,.18);overflow:auto}
+.mapboxgl-popup-close-button{font-size:18px;color:var(--muted);padding:2px 8px}
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip{border-top-color:var(--card)}
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip{border-bottom-color:var(--card)}
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip{border-right-color:var(--card)}
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip{border-left-color:var(--card)}
+.pop{font-family:var(--sans)}
+.pop .ph{padding:12px 15px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+  background:linear-gradient(180deg,var(--card2),var(--card))}
+.pop .ph .id{font-weight:600;font-size:14px;color:var(--ink);letter-spacing:-.1px}
+.pop .ph .addr{color:var(--muted);font-size:11px;margin-top:3px;line-height:1.4;font-weight:400}
+.pop .pb{padding:11px 15px}
+.pop .prow{display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:12px;border-bottom:1px solid var(--line)}
+.pop .prow:last-of-type{border-bottom:none}
+.pop .k{color:var(--muted);font-weight:400} .pop .v{font-weight:500;text-align:right;color:var(--ink)}
+.pop .bar{height:6px;border-radius:4px;background:var(--line);margin-top:8px;overflow:hidden}
+.pop .bar>i{display:block;height:100%;border-radius:4px}
+.pop .notes{margin-top:10px;padding:10px 12px;background:var(--card2);border:1px solid var(--line);border-radius:7px;font-size:11px;color:var(--ink2);line-height:1.55;max-height:120px;overflow:auto;font-weight:400}
+.pop .notes b{color:var(--blue-d);font-weight:600}
+
+/* Pills — soft tints, QA'd for contrast */
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap;letter-spacing:.3px;text-transform:uppercase}
+.p-perf{background:#E6F0EA;color:#14603A}  .p-ss{background:#EDF2E0;color:#42601C}
+.p-watch{background:#FBF1D6;color:#7A5D08} .p-problem{background:#FAEADA;color:#8A4A11}
+.p-fc{background:#F8E3E3;color:#8C1A1A}    .p-reo{background:#F1DBDB;color:#5E1212}
+.p-cur{background:#E6F0EA;color:#14603A}   .p-other{background:#EDF0F4;color:#3C4A5C}
+.p-30{background:#FBF1D6;color:#7A5D08} .p-60{background:#FAEADA;color:#8A4A11} .p-90{background:#F8E3E3;color:#A31F1F}
+
+/* Charts */
+.charts{display:grid;grid-template-columns:repeat(6,1fr);gap:18px;margin-bottom:26px}
+.chart-box{position:relative;height:250px}
+/* Doughnuts hand their legend to a CSS grid instead of Chart.js, which wraps six
+   entries unevenly and leaves the two cards visually out of step with each other. */
+.chart-box.dnut{height:182px}
+.dlegend{display:grid;grid-template-columns:1fr 1fr;gap:7px 16px;margin-top:13px;font-size:11px;font-weight:400;color:var(--ink2)}
+.dlegend .it{display:flex;align-items:center;gap:5px;min-width:0}
+.dlegend .it .sw+.lb{margin-left:2px}
+.dlegend .sw{width:9px;height:9px;border-radius:2px;flex:none;box-shadow:0 0 0 1px rgba(22,40,63,.12)}
+.dlegend .lb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlegend .ct{flex:none;color:var(--muted);font-weight:400;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.dlegend .vl{margin-left:auto;padding-left:6px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.c-third{grid-column:span 2}
+.c-full{grid-column:1 / -1}
+.tb-wrap{padding:0}
+table.tbtop{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+/* fixed geometry means long names must clip rather than push the grid out of
+   alignment with the exhibit above */
+table.tbtop td:first-child,table.tbtop td:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table.tbtop th{background:var(--ink);color:#E8EDF3;text-align:left;padding:10px 11px;font-weight:600;font-size:9.5px;text-transform:uppercase;letter-spacing:1px;white-space:nowrap}
+table.tbtop th.num,table.tbtop td.num{text-align:right;font-variant-numeric:tabular-nums}
+table.tbtop th.ctr,table.tbtop td.ctr{text-align:center}
+table.tbtop th.tb-active{color:#fff;background:var(--blue-d)}
+table.tbtop td.tb-active{color:var(--blue-d);font-weight:600;background:rgba(44,111,181,.05)}
+table.tbtop td{padding:9px 11px;border-bottom:1px solid var(--line)}
+table.tbtop tr:last-child td{border-bottom:none}
+table.tbtop tbody tr:hover{background:var(--card2)}
+.tb-rank{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;background:var(--blue);color:#fff;font-weight:600;font-size:10.5px;margin-right:2px}
+.tb-name{font-weight:500;color:var(--ink)}
+.tb-loc{color:var(--ink2);font-weight:400}
+.tb-sub{color:var(--faint);font-size:11px}
+.tb-bar{height:6px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:0;min-width:24px;flex:1}
+.tb-bar>i{display:block;height:100%;border-radius:4px;background:var(--blue)}
+.tb-util{display:flex;align-items:center;justify-content:center;gap:8px;min-width:0}
+.tb-utilpct{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink2);font-size:11.5px;min-width:32px;text-align:right}
+.tb-foot{padding:11px 13px 13px;font-size:10.5px;color:var(--muted);line-height:1.55;border-top:1px solid var(--line);font-weight:400}
+.tb-foot b{color:var(--ink2);font-weight:600}
+.tb-ent{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:4px;background:var(--line);color:var(--ink2);font-weight:600;font-size:10.5px;margin-right:6px}
+.tb-ent.multi{background:rgba(210,118,28,.13);color:#8A4A11}
+.tb-np{font-variant-numeric:tabular-nums;font-weight:600;font-size:11.5px}
+
+
+/* Period-over-period change log ------------------------------------------------
+   Same table furniture as the borrower exhibit (.tbtop) so the foot of the page
+   reads as part of the same document, plus a roll-forward strip and a pair of
+   direction chips that are the only new vocabulary in this section. */
+.chgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:26px}
+/* Row numbers, same badge as the loan tape's ordinal so a reviewer can call out
+   "migration 3" the way they already call out a tape row. These are positions
+   within the change table, not the tape ordinal — each table is its own short,
+   sorted list, so 1..N is the useful handle here. */
+table.chtbl th.rnh,table.chtbl td.rn{width:44px;text-align:center;padding-left:8px;padding-right:8px}
+table.chtbl th.rnh{cursor:default}
+/* State sits in its own column now, as it does in the loan tape. Two characters
+   wide, so it is sized to the header rather than the content and never clipped. */
+table.chtbl td.st{white-space:nowrap}
+/* .tbtop clips its first two cells by column position; the # column displaced
+   that window, so the text columns that need clipping now say so by name. */
+table.chtbl td.clip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Date-pair cell (maturity restatements). Fixed table layout does not clip by
+   default, so an under-width column overlaps its neighbour rather than wrapping —
+   which is what put "+91d" on top of the restated date. The column is sized for
+   the full "MM/DD/YYYY -> MM/DD/YYYY" string below, and this keeps the pair on one
+   line with a tight arrow so it stays inside that width. */
+/* Two independent guards, because getting this wrong is what caused the overlap:
+   the column is now wide enough for the string at every width the card is shown
+   at, the card stops being half-width before it gets that tight (below), and if a
+   future date format outgrows both, overflow:hidden clips inside the cell instead
+   of letting the text run under the next column. */
+table.chtbl td.dpair{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.chtbl td.dpair .mig{gap:5px;font-size:11.5px}
+.ch-full{grid-column:1 / -1}
+.chwrap{padding:0;max-height:430px;overflow:auto}
+table.tbtop th.sticky,.chwrap table.tbtop thead th{position:sticky;top:0;z-index:2}
+/* Roll-forward: Basis at the prior cut, the three things that moved it, and the
+   Basis now. Signed steps are tinted by direction; the two anchors are not. */
+.wf{display:flex;align-items:stretch;flex-wrap:wrap;gap:0}
+.wf .st{flex:1 1 0;min-width:140px;padding:2px 16px 2px 0;position:relative}
+.wf .st+.st{padding-left:17px;border-left:1px solid var(--line)}
+.wf .st .op{position:absolute;left:-7px;top:17px;width:15px;height:15px;border-radius:50%;background:var(--card);
+  border:1px solid var(--line2);color:var(--muted);font:700 10px/13px var(--sans);text-align:center}
+.wf .k{font-size:9.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.wf .v{font-size:22px;font-weight:300;letter-spacing:-.6px;margin-top:9px;color:var(--ink);
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.wf .v.up{color:var(--green)} .wf .v.dn{color:var(--red)}
+.wf .n{font-size:10.5px;color:var(--muted);margin-top:5px;line-height:1.45}
+.wf .st.anchor{background:var(--card2);border-radius:8px;padding:12px 16px;margin:-10px 0}
+.wf .st.anchor:first-child{margin-right:10px}
+.wf .st.anchor+.st{border-left:none}
+.wf-foot{display:flex;flex-wrap:wrap;gap:0;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.wf-foot .m{flex:1 1 0;min-width:150px;padding-right:14px}
+.wf-foot .m+.m{padding-left:15px;border-left:1px solid var(--line)}
+.wf-foot .mk{font-size:9.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.wf-foot .mv{font-size:13px;font-weight:600;color:var(--ink);margin-top:6px;font-variant-numeric:tabular-nums}
+.wf-foot .mv .was{font-weight:400;color:var(--muted)}
+.wf-foot .mv .arw{color:var(--faint);margin:0 5px}
+.wf-foot .mv em{font-style:normal;font-weight:600}
+.wf-foot .mv em.up{color:var(--red)} .wf-foot .mv em.dn{color:var(--green)} .wf-foot .mv em.flat{color:var(--muted)}
+/* Direction chip: is the move toward or away from trouble. Deliberately not the
+   status pill palette — this encodes the direction of travel, not a category. */
+.dirc{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;
+  font-size:9.5px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.dirc.worse{background:#F8E3E3;color:#8C1A1A} .dirc.better{background:#E6F0EA;color:#14603A}
+.dirc.side{background:#EDF0F4;color:#3C4A5C}
+.mig{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.mig .arw{color:var(--faint);font-weight:600}
+.mig .same{color:var(--faint);font-size:11px}
+.chg-num{font-variant-numeric:tabular-nums;font-weight:600}
+.chg-num.up{color:var(--green)} .chg-num.dn{color:var(--red)}
+.ch-addr{font-weight:500;color:var(--ink)}
+.ch-note{color:var(--ink2);font-weight:400}
+.ch-none{padding:26px 16px;text-align:center;color:var(--muted);font-size:12px}
+.ch-tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:9.5px;font-weight:600;
+  letter-spacing:.4px;text-transform:uppercase;border:1px solid var(--line2);background:var(--card2);color:var(--ink2)}
+.ch-tag.new{border-color:rgba(29,122,74,.25);background:#EFF6F2;color:#14603A}
+
+/* Table */
+.tablecard .body{padding:14px 16px 0}
+.tape-tot{font-size:11.5px;font-weight:400;color:var(--ink2);letter-spacing:0;white-space:nowrap}
+.tape-tot b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.tape-tot .flt{color:#8A6A0C;font-weight:600;font-size:9.5px;text-transform:uppercase;letter-spacing:.9px;
+  border:1px solid #EBDCB4;background:#FDF8EB;border-radius:5px;padding:2px 7px}
+.searchwrap{position:relative;display:flex;align-items:center}
+.search{width:100%;background:var(--card2);border:1px solid var(--line2);color:var(--ink);padding:10px 76px 10px 13px;border-radius:8px;font-size:12.5px;font-family:var(--sans);font-weight:400}
+.search::placeholder{color:var(--faint);font-weight:400}
+.search:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(44,111,181,.13)}
+.search::-webkit-search-cancel-button{display:none}
+.srch-clear{position:absolute;right:8px;width:22px;height:22px;border:none;border-radius:50%;background:var(--line2);color:var(--ink2);
+  font:600 13px/1 var(--sans);cursor:pointer;display:none;align-items:center;justify-content:center;padding:0}
+.srch-clear:hover{background:var(--red);color:#fff}
+.srch-clear.on{display:inline-flex}
+.srch-n{position:absolute;right:36px;font-size:10.5px;font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.3px;pointer-events:none}
+.tape-empty{padding:34px 22px;text-align:center;color:var(--muted);font-size:12.5px;font-weight:400;line-height:1.6}
+.tape-empty b{color:var(--ink);font-weight:600}
+.tape-empty .hintq{display:block;margin-top:8px;font-size:11.5px;color:var(--muted);font-weight:400}
+.tblwrap{max-height:540px;overflow:auto;margin-top:14px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+/* Sticky + sortable styling is scoped to the loan tape only. Applied globally it
+   leaked into the Top Borrowers table, which is not sortable and has no scroll
+   container — its header floated against the viewport and invited dead clicks. */
+#tape thead th{position:sticky;top:0;z-index:2;background:var(--ink);color:#E8EDF3;font-weight:600;font-size:9.5px;text-transform:uppercase;letter-spacing:1px;text-align:left;padding:10px 11px;cursor:pointer;user-select:none;white-space:nowrap}
+#tape thead th:hover{background:var(--blue-d)}
+#tape thead th:focus-visible{outline:2px solid #9CC4FF;outline-offset:-2px}
+#tape thead th.num{text-align:right}
+#tape thead th.ctr{text-align:center}
+/* Sort affordance: the tape had no indication of which column drove the order. */
+#tape thead th .sa{opacity:.32;font-size:8.5px;margin-left:4px;font-weight:600}
+#tape thead th[aria-sort] .sa{opacity:1;color:#9CC4FF}
+tbody td{padding:8px 11px;border-bottom:1px solid var(--line)}
+tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
+tbody td.ctr{text-align:center}
+.d2m-box{display:inline-block;position:relative;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.d2m-box .sign{position:absolute;right:100%;margin-right:1px}
+tbody tr.loanrow{cursor:pointer}
+tbody tr.loanrow:focus-visible{outline:2px solid var(--blue);outline-offset:-2px}
+tbody tr.noterow>td{padding:0;border-bottom:1px solid var(--line2);background:var(--card2)}
+.notebox{padding:11px 16px;font-size:11.5px;color:var(--ink2);line-height:1.6;font-weight:400}
+.notebox b{color:var(--blue-d);font-weight:600}
+.notebox .empty{color:var(--faint);font-style:italic;font-weight:400}
+.notebox .nb-g{margin-bottom:5px;padding-bottom:5px;border-bottom:1px solid var(--line)}
+.notebox .nb-sep{color:var(--line2);margin:0 2px}
+/* Loan tape row index — the same badge geometry as .tb-rank above, but a neutral
+   fill rather than the solid data blue: that table has five rows, this one has 221,
+   and 221 saturated badges down the left edge compete with the status pills for
+   attention. min-width plus padding keeps 1- and 3-digit values the same shape.
+   The number is fixed to the position (see assignOrdinal), not to the screen row,
+   so it stays with its loan through every re-sort and filter. */
+#tape thead th.rnh,#tape tbody td.rn{width:44px;text-align:center}
+#tape thead th.rnh{cursor:default}
+#tape thead th.rnh:hover{background:var(--ink)}
+.rownum{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 4px;
+  border-radius:5px;background:var(--card2);border:1px solid var(--line2);color:var(--ink2);
+  font-weight:600;font-size:10px;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+tbody tr.loanrow.alt{background:#FAFBFD}
+tbody tr.loanrow.alt .rownum{background:#fff}
+tbody tr.loanrow:hover{background:#EFF4F9}
+.idcell{font-weight:600;color:var(--blue-d)}
+#tape{font-size:11.5px}
+#tape thead th{padding:9px 9px}
+#tape tbody td{padding:7px 9px;white-space:nowrap}
+#tape tbody td.addr{max-width:230px;overflow:hidden;text-overflow:ellipsis}
+#tape tbody td.bwr{max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* "Note Upd." — the tape's Notes Last Updated field. Sparse by nature (the column
+   is new this cycle), so a populated cell is set in ink and an empty one recedes to
+   a faint rule rather than 200-odd loud dashes down the right edge. */
+#tape thead th:last-child,#tape tbody td.nupd{width:74px}
+.nu{font-size:10.5px;font-weight:600;color:var(--blue-d);background:rgba(44,111,181,.07);
+  border:1px solid rgba(44,111,181,.16);border-radius:4px;padding:1px 5px;white-space:nowrap}
+.nu-none{color:var(--line2);font-weight:600}
+.nb-stamp{display:inline-block;font-size:9.5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;
+  color:var(--blue-d);background:rgba(44,111,181,.07);border:1px solid rgba(44,111,181,.16);
+  border-radius:4px;padding:1px 6px;margin-right:6px;vertical-align:1px}
+.nb-stamp.none{color:var(--muted);background:var(--card2);border-color:var(--line2)}
+footer{color:var(--muted);font-size:10.5px;line-height:1.7;padding-top:18px;margin-top:26px;border-top:1px solid var(--line2);font-weight:400}
+footer b{color:var(--ink2);font-weight:600}
+a{color:var(--blue-d);text-decoration:none}
+a:hover{color:var(--ink);text-decoration:underline}
+/* The change log's two half-width cards (Positions Removed, Maturity Date Changes)
+   go full width well before the charts do. Their columns carry date pairs and
+   status pills that do not compress, and at ~1200px the pair was tight enough to
+   push content past its column edge. */
+@media(max-width:1400px){.chgrid{grid-template-columns:1fr}}
+/* On a phone even the full-width card cannot hold the pair on one line, so let it
+   stack rather than ellipsis away the restated date — the second date is the
+   whole point of the column. */
+@media(max-width:680px){table.chtbl td.dpair{white-space:normal}table.chtbl td.dpair .mig{flex-wrap:wrap;justify-content:center}}
+@media(max-width:1200px){.kpis{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}.c-third{grid-column:auto}
+  .chgrid{grid-template-columns:1fr}
+  .kpi:nth-child(2n){border-right:none}.kpi:nth-child(n+3){border-top:1px solid var(--line)}}
+@media(max-width:680px){.kpis{grid-template-columns:1fr}.kpi{border-right:none}.kpi+.kpi{border-top:1px solid var(--line)}#map{height:400px}.wrap{padding:16px 14px 28px}h1{font-size:23px}}
+
+/* Print / PDF — this exhibit goes into committee packets, so make it survive
+   a print dialog: no clipped scroll boxes, no dropped fills, no dead controls. */
+@media print{
+  @page{size:letter landscape;margin:12mm}
+  html,body{background:#fff}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  .wrap{max-width:none;padding:0}
+  .mapbar,.srch-clear,.srch-n,#bootWarn{display:none!important}
+  .searchwrap{display:none}
+  .card,.kpis{box-shadow:none;break-inside:avoid}
+  .tblwrap,.chwrap{max-height:none;overflow:visible}
+  .chgrid{grid-template-columns:1fr}
+  .chwrap table.tbtop thead th{position:static}
+  #tape thead th{position:static}
+  #tape tbody td{white-space:normal}
+  #tape tbody td.addr{max-width:none;overflow:visible}
+  .sec-title,.card h2{break-after:avoid}
+  tbody tr.loanrow{break-inside:avoid}
+  .chart-box{height:210px}
+  footer{break-before:auto}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div id="bootWarn" style="margin:0 0 20px;padding:14px 16px;border:1px solid #E8C4C4;border-left:4px solid #C22B2B;border-radius:8px;background:#FCF4F4;color:#8C1A1A;font:400 13px/1.6 'Inter','Helvetica Neue',Helvetica,Arial,sans-serif">
+  <div style="font-weight:600;margin-bottom:5px;letter-spacing:.01em">This exhibit did not finish loading &mdash; figures below are incomplete.</div>
+  The interactive sections (charts, borrower summary, loan tape, map) are blank because this page's scripts did not run. Most often this means the file was opened in an email preview pane, or the scripts were removed by an email security gateway. Save the file to disk and open it in Chrome or Edge. If it is still blank, request the hosted link instead of the attachment.
+</div>
+<header>
+  <div>
+    <div class="eyebrow">Churchill Real Estate · Credit Committee Exhibit</div>
+    <h1>CREMX Portfolio Review</h1>
+    <div class="sub">Construction &amp; Bridge Loan Tape (<span id="hdrCount">221</span> Positions)</div>
+  </div>
+  <div class="stamp"><b>As of {{CURR_LABEL}}</b><span id="hdrCount2">221</span> loans · Single Tranche<br>Prepared for Asset Management Review</div>
+</header>
+
+<div class="kpis" id="kpis"></div>
+
+<div class="sec-title">Concentration &amp; Credit Profile<span class="rule"></span></div>
+<div class="charts">
+  <div class="card c-third"><h2>Basis by Status <span class="hint">Portfolio Health</span></h2><div class="body"><div class="chart-box dnut"><canvas id="cStatus"></canvas></div><div class="dlegend" id="lStatus"></div></div></div>
+  <div class="card c-third"><h2>Basis by Delinquency <span class="hint">Payment Status</span></h2><div class="body"><div class="chart-box dnut"><canvas id="cDq"></canvas></div><div class="dlegend" id="lDq"></div></div></div>
+  <div class="card c-third"><h2>Maturity Wall <span class="hint">Basis by Time-to-Maturity</span></h2><div class="body"><div class="chart-box"><canvas id="cMat"></canvas></div></div></div>
+  <div class="card c-third"><h2>Basis by Originator <span class="hint">Top 10 · Split by Payment Performance</span></h2><div class="body"><div class="chart-box"><canvas id="cOrig"></canvas></div></div></div>
+  <div class="card c-third"><h2>Basis by State <span class="hint">Top 10 · Split by Payment Performance</span></h2><div class="body"><div class="chart-box"><canvas id="cState"></canvas></div></div></div>
+  <div class="card c-third"><h2>Advance % Distribution <span class="hint">Count by Leverage Band</span></h2><div class="body"><div class="chart-box"><canvas id="cAdv"></canvas></div></div></div>
+  <div class="card c-full"><h2 style="gap:10px;justify-content:flex-start"><span id="tbTitle">Top Borrowers by</span>
+      <span class="seg" id="tbSeg" role="group" aria-label="Rank top borrowers by"><button type="button" data-metric="basis" class="active">Basis</button><button type="button" data-metric="tla">TLA</button></span></h2>
+    <div class="tb-wrap">
+      <table class="tbtop">
+        <colgroup><col style="width:25%"><col style="width:25%"><col style="width:7%"><col style="width:12%"><col style="width:12%"><col style="width:9%"><col style="width:10%"></colgroup>
+        <thead><tr>
+          <th>Borrower</th><th>Project Location</th><th class="num ctr">Loans</th><th class="num ctr" id="tbHeadBasis">Basis</th><th class="num ctr" id="tbHeadTla">TLA</th><th class="num ctr" id="tbHeadPct">% of Book</th><th class="ctr">Basis / TLA</th>
+        </tr></thead>
+        <tbody id="topBorrowers"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="sec-title">Geographic Exposure<span class="rule"></span></div>
+<div class="card" style="margin-bottom:26px">
+  <h2>Loan Location Map <span class="hint">Click map once, then scroll to zoom</span></h2>
+  <div id="map"></div>
+  <div class="mapbar">
+    <div class="grp"><label id="baseLbl">Base</label>
+      <div class="seg" id="baseSeg" role="group" aria-labelledby="baseLbl"><button type="button" data-b="street" class="active">Street</button><button type="button" data-b="sat">Satellite</button></div>
+    </div>
+    <div class="grp" style="margin-left:4px"><label id="colorLbl">Color by</label>
+      <div class="seg" id="colorSeg" role="group" aria-labelledby="colorLbl">
+        <button type="button" data-m="status" class="active">Status</button><button type="button" data-m="dq">Delinquency</button>
+        <button type="button" data-m="mat">Maturity</button><button type="button" data-m="adv">Advance&nbsp;%</button>
+      </div>
+    </div>
+    <div class="grp" style="margin-left:4px"><label id="viewLbl">View</label>
+      <div class="seg" id="viewSeg" role="group" aria-labelledby="viewLbl"><button type="button" data-v="2d" class="active">2D</button><button type="button" data-v="3d">3D</button></div>
+    </div>
+    <label class="chk" style="margin-left:4px"><input type="checkbox" id="clusterChk"> Cluster nearby</label>
+    <label class="chk"><input type="checkbox" id="sizeChk" checked> Size by Basis</label>
+  </div>
+  <div class="legend chpills" id="mapLegend" style="border-bottom:none;border-top:1px solid var(--line)"></div>
+</div>
+
+<div class="sec-title">Loan Tape<span class="rule"></span></div>
+<div class="card tablecard" style="margin-bottom:26px">
+  <h2 style="gap:8px;justify-content:flex-start">Full Position Detail<span class="tape-tot" id="tapeTotals"></span></h2>
+  <div class="body">
+    <div class="searchwrap">
+      <input class="search" id="search" type="search" autocomplete="off" spellcheck="false"
+             aria-label="Filter the loan tape by loan ID, borrower, guarantor, address, city, state, originator, status or delinquency"
+             aria-controls="tapeBody"
+             placeholder="Filter by loan ID, borrower, guarantor, address, city, state, originator, status, DQ or asset note — all terms must match; scope a term with state:fl, city:miami, guarantor:hughes, status:reo, updated:09/14">
+      <span class="srch-n" id="searchN" aria-hidden="true"></span>
+      <button class="srch-clear" id="searchClear" type="button" aria-label="Clear the filter" title="Clear filter">&times;</button>
+    </div>
+  </div>
+  <div class="legend chpills" id="tapePills" hidden></div>
+  <div class="tblwrap">
+    <table id="tape">
+      <thead><tr>
+        <th class="rnh" aria-label="Position number">#</th>
+        <th data-k="status" class="ctr">Status</th>
+        <th data-k="orig" class="ctr">Originator</th><th data-k="borrower">Borrower</th>
+        <th data-k="address">Address</th><th data-k="city">City</th><th data-k="state">St</th>
+        <th data-k="basis" class="num ctr">Basis</th><th data-k="tla" class="num ctr">TLA</th>
+        <th data-k="adv" class="num">Adv %</th>
+        <th data-k="maturity" class="ctr">Maturity</th>
+        <th data-k="d2m" class="num ctr">Days→Mat</th><th data-k="dq" class="ctr">DQ</th>
+        <th data-k="nupd" class="ctr">Note Upd.</th>
+      </tr></thead>
+      <tbody id="tapeBody"></tbody>
+    </table>
+  </div>
+</div>
+
+
+<div class="sec-title">Period-Over-Period Changes<span class="rule"></span></div>
+<div class="card" style="margin-bottom:18px">
+  <h2>Basis Roll-Forward <span class="hint" id="chPeriod"></span></h2>
+  <div class="body"><div class="wf" id="rollFwd"></div><div class="wf-foot" id="rollFoot"></div></div>
+</div>
+<div class="chgrid">
+
+  <div class="card ch-full"><h2>Risk Migrations <span class="hint" id="migHint"></span></h2>
+    <div class="chwrap">
+      <table class="tbtop chtbl" id="tMig">
+        <colgroup><col style="width:44px"><col style="width:24%"><col style="width:13%"><col style="width:5%"><col style="width:11%"><col style="width:18%"><col style="width:17%"><col style="width:12%"></colgroup>
+        <thead><tr><th class="rnh" aria-label="Row number">#</th><th>Address</th><th>City</th><th>St</th><th class="num ctr">Basis</th><th class="ctr">Status</th><th class="ctr">Delinquency</th><th class="ctr">Direction</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card ch-full"><h2>Additions to the Tape <span class="hint" id="addHint"></span></h2>
+    <div class="chwrap">
+      <table class="tbtop chtbl" id="tAdd">
+        <colgroup><col style="width:44px"><col style="width:21%"><col style="width:12%"><col style="width:5%"><col style="width:10%"><col style="width:10%"><col style="width:7%"><col style="width:9%"><col style="width:15%"><col style="width:11%"></colgroup>
+        <thead><tr><th class="rnh" aria-label="Row number">#</th><th>Address</th><th>City</th><th>St</th><th class="num ctr">Basis</th><th class="num ctr">TLA</th><th class="num ctr">Adv %</th><th class="ctr">Maturity</th><th>Originator</th><th class="ctr">Source</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card"><h2>Positions Removed <span class="hint" id="remHint"></span></h2>
+    <div class="chwrap">
+      <table class="tbtop chtbl" id="tRem">
+        <colgroup><col style="width:44px"><col style="width:30%"><col style="width:17%"><col style="width:6%"><col style="width:17%"><col style="width:16%"><col style="width:14%"></colgroup>
+        <thead><tr><th class="rnh" aria-label="Row number">#</th><th>Address</th><th>City</th><th>St</th><th class="ctr">Status at Prior Cut</th><th class="num ctr">Basis</th><th class="num ctr">TLA</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card"><h2>Maturity Date Changes <span class="hint" id="matHint"></span></h2>
+    <div class="chwrap">
+      <table class="tbtop chtbl" id="tMat">
+        <colgroup><col style="width:44px"><col style="width:22%"><col style="width:14%"><col style="width:5%"><col style="width:13%"><col style="width:34%"><col style="width:12%"></colgroup>
+        <thead><tr><th class="rnh" aria-label="Row number">#</th><th>Address</th><th>City</th><th>St</th><th class="num ctr">Basis</th><th class="ctr">Maturity</th><th class="num ctr">Extended</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card ch-full"><h2>Basis Movements on Continuing Positions <span class="hint" id="movHint"></span></h2>
+    <div class="chwrap">
+      <table class="tbtop chtbl" id="tMov">
+        <colgroup><col style="width:44px"><col style="width:23%"><col style="width:13%"><col style="width:5%"><col style="width:12%"><col style="width:12%"><col style="width:12%"><col style="width:9%"><col style="width:14%"></colgroup>
+        <thead><tr><th class="rnh" aria-label="Row number">#</th><th>Address</th><th>City</th><th>St</th><th class="num ctr">Change</th><th class="num ctr">Basis Prior</th><th class="num ctr">Basis Now</th><th class="num ctr">Adv %</th><th class="ctr">Status</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card ch-full"><h2>Asset Commentary Refreshed <span class="hint" id="cmtHint"></span></h2>
+    <div class="chwrap">
+      <table class="tbtop chtbl" id="tCmt">
+        <colgroup><col style="width:44px"><col style="width:18%"><col style="width:11%"><col style="width:5%"><col style="width:10%"><col style="width:8%"><col style="width:9%"><col style="width:39%"></colgroup>
+        <thead><tr><th class="rnh" aria-label="Row number">#</th><th>Address</th><th>City</th><th>St</th><th class="num ctr">Basis</th><th class="ctr">Change</th><th class="ctr">Updated</th><th>Current Commentary</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Source: CREMX Loan Portfolio tape, {{CURR_ISO}} &middot; <span id="fnCount">{{CURR_N}}</span> positions &middot; {{PRIOR_FOOT}} &middot; Internal asset-management exhibit.<span id="fnFix"></span>
+</footer>
+</div>
+<script>
+const LOANS =
+{{LOANS}};
+/* ---- prior-period snapshot (10/02/2026 tape, 222 positions) --------------
+   Carried so the change log at the foot of this exhibit is computed from the
+   two tapes rather than typed by hand — re-point LOANS at a new tape and the
+   section re-derives itself. Only the fields the comparison needs are kept.
+   Asset commentary is represented by "nh", a 32-bit FNV-1a hash of the prior
+   note text, which is enough to detect that a note changed without carrying a
+   second copy of the commentary itself through the file. */
+const PRIOR =
+{{PRIOR}};
+const PRIOR_LABEL={{PRIOR_LABEL_JS}}, CURR_LABEL={{CURR_LABEL_JS}}, NO_PRIOR={{NO_PRIOR_JS}};
+
+/* ---- tape corrections ----------------------------------------------------
+   Confirmed with Sebastian for the 09/25/2026 cycle, re-checked each cycle since.
+   SPENT as of the 10/09/2026 tape, which now carries the corrected 2026-09-22
+   value: the guard reports the entry as no longer needed, the footer line stops
+   rendering, and nothing is rewritten. The entry is kept one cycle as the record
+   of that upstream fix and can be deleted next cycle. Applied here rather than
+   edited into the tape so the override stays visible to anyone diffing this
+   exhibit against the source file, and so it disappears on its own once the
+   tape is fixed upstream: each entry only fires when the field still holds the
+   exact wrong value, so a corrected tape makes this a no-op instead of
+   silently re-breaking the field. Nothing but the listed fields is touched.
+
+   (No corrections are carried now.) */
+const TAPE_FIX=[];   // spent: uploads are shown as-is
+const TAPE_FIX_LOG=[];
+TAPE_FIX.forEach(f=>{
+  const l=LOANS.find(x=>x.id===f.id);
+  if(!l){TAPE_FIX_LOG.push(`${f.id}: not on this tape — correction skipped`);return;}
+  if(l[f.field]!==f.from){TAPE_FIX_LOG.push(`${f.id}.${f.field}: already ${l[f.field]} — correction no longer needed`);return;}
+  l[f.field]=f.to;
+  f.fired=true;                 // set only on a real rewrite; read by the footer disclosure
+  TAPE_FIX_LOG.push(`${f.id}.${f.field}: ${f.from} → ${f.to} (${f.why})`);
+});
+/* ===== helpers ===== */
+/* Every tape value reaches the DOM through innerHTML, so it has to be escaped.
+   16 rows in the 10/09/2026 tape carry a bare '&' in a borrower, address or
+   originator value ("M&J Pham Development LLC", "2175 & 2177 Balboa Ave", "D+G
+   Luxury Homes IV, LLC") and 26 carry an apostrophe, in guarantor names ("Jay
+   Kaulana Ku'ulei Kahee") and in asset commentary; a future tape carrying '<'
+   would silently truncate a row. */
+const ESC_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+const esc=v=>v==null?'':String(v).replace(/[&<>"']/g,c=>ESC_MAP[c]);
+const fmt$=v=>v==null?'—':'$'+Math.round(v).toLocaleString();
+const fmtM=v=>v==null?'—':'$'+(v/1e6).toFixed(2)+'M';
+const pct=v=>v==null?'—':(v*100).toFixed(1)+'%';
+const fmtDate=s=>{if(!s)return '—';const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s);return m?`${m[2]}/${m[3]}/${m[1]}`:s;};
+/* Two-digit-year form for the narrow "Note Upd." column only; every other date
+   on the page stays MM/DD/YYYY. */
+const fmtDateS=s=>{if(!s)return '';const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s);return m?`${m[2]}/${m[3]}/${m[1].slice(2)}`:s;};
+const fmtD2M=v=>{if(v==null)return '—';return `<span class="d2m-box">${v<0?'<span class="sign">−</span>':''}${Math.abs(v)}</span>`;};
+const sum=(a,f)=>a.reduce((s,x)=>s+(f(x)||0),0);
+/* Borrower names in this tape run to 58 characters ("MADISON PARK ACQUISITIONS
+   AND DEVELOPMENT LLC" and the like) and were setting the width of the whole
+   tape. Cap the rendered string at 40 and hang the full name off the title
+   attribute; the value itself is untouched, so search, sort and the borrower
+   exhibit all still see the complete name. */
+const CAP=40;
+const trunc=(v,n)=>{v=v==null?'':String(v);return v.length<=(n||CAP)?v:v.slice(0,(n||CAP)-1).trimEnd()+'\u2026';};
+/* ---- guarantor presentation ----------------------------------------------
+   The tape carries up to two guarantors per position. Its "Single Guarantor"
+   marker in the Guarantor 2 column and the "N/A" marker in Guarantor 1 are
+   placeholders, not names, and were stripped when the tape was loaded — so a
+   null here means "none of record", and the label reads singular or plural
+   from what actually survived rather than always claiming two. */
+/* Two tape conditions make a naive [g1,g2] read wrong, and both are live in the
+   10/09/2026 file. Seven loans name the same guarantor in BOTH columns (four Loma
+   Alta positions for Adrian Alejandro Rudomin, plus one each for Jason Matthews,
+   Blake Edward Lanz and the 709 West Lynwood position) — read naively that prints the same name twice in the
+   map popup and again in the tape's expanded note row, and reports "Guarantors"
+   plural where there is only one name of record. And one sponsor is keyed
+   inconsistently: "Mario A Noriega" and "Mario  A Noriega" differ only by a
+   double space, which HTML collapses on render, so the two spellings would read
+   as two different people.
+   Fold on whitespace-normalised, case-insensitive identity; keep the first spelling
+   as recorded for display. */
+const guarKey=g=>String(g).trim().replace(/\s+/g,' ').toLowerCase();
+const guarList=l=>{
+  const out=[],seen={};
+  [l.g1,l.g2].forEach(g=>{if(!g)return;const k=guarKey(g);if(seen[k])return;seen[k]=1;out.push(g);});
+  return out;
+};
+const guarLabel=l=>guarList(l).length>1?'Guarantors':'Guarantor';
+const guarText=l=>{const g=guarList(l);return g.length?g.map(esc).join('<br>'):'<span style="color:#A6B2C1;font-weight:400">None of record</span>';};
+const money=v=>'$'+(v/1e6).toFixed(1)+'M';
+const TOT=sum(LOANS,l=>l.basis);
+
+/* Position counts are derived, not typed into the prose, so the header, the
+   stamp and the precision footnote can never drift from the tape. */
+(function syncCounts(){
+  const n=LOANS.length;
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('hdrCount',n); set('hdrCount2',n); set('fnCount',n);
+  /* Disclose any tape correction on the face of the exhibit. Only overrides that
+     actually rewrote a value print, so once upstream absorbs a fix the line
+     disappears by itself instead of claiming credit for a correction it is no
+     longer making. This reads the flag the apply loop sets rather than testing
+     whether the field equals the corrected value: that test also passes when the
+     tape supplies the right value on its own, which is exactly the case it needs
+     to tell apart. */
+  const applied=TAPE_FIX.filter(f=>f.fired);
+  const fx=document.getElementById('fnFix');
+  if(fx&&applied.length)fx.innerHTML=' &middot; '+applied.length+(applied.length===1?' tape correction applied: ':' tape corrections applied: ')
+    +applied.map(f=>{const l=LOANS.find(x=>x.id===f.id);
+       return esc(l.address+', '+l.city+', '+l.state)+' &mdash; '+esc(f.why)+', read as '+esc(f.from)+', shown as '+esc(f.to);}).join('; ')+'.';
+})();
+
+/* ===== refined palette ===== */
+const PAL={navy:'#16283F',blue:'#2C6FB5',blueD:'#1F5589',
+  /* Ordered risk ramp: green → lime → amber → orange → red → maroon. Every risk
+     dimension on this page (status, delinquency, maturity, advance %, pills, map
+     markers, the performance split) is drawn from these six steps and nothing
+     else, so a colour never means two things. The data blue above is reserved
+     for interaction and for neutral measures such as Basis/TLA utilisation. */
+  green:'#1D7A4A',olive:'#6E9E3C',amber:'#E2A712',orange:'#D2761C',red:'#C22B2B',redD:'#8C1A1A',redX:'#5E1212',
+  /* aliases kept so the ramp helpers below read unchanged */
+  teal:'#1D7A4A',coral:'#D2761C',rose:'#C22B2B',maroon:'#8C1A1A',violet:'#5E1212',
+  slate:'#5B6B7F',faint:'#A6B2C1'};
+/* Severity ramp, shared by charts / map / pills. 'Foreclosure' and 'REO' carry the
+   same colour in both dimensions so the two doughnuts read against each other. */
+const ST_ORDER=['Performing','SS Managed','Watchlist','Problem Loans','Foreclosure','REO'];
+const DQ_ORDER=['Current','30 Days DQ','60 Days DQ','90+ Days DQ','Foreclosure','REO'];
+/* ---- fixed tape ordinal ---------------------------------------------------
+   Assigned once here, from the tape's default order (Status ascending through
+   ST_ORDER, then descending Basis, then loan id), and then carried by the
+   position for the life of the page. It is deliberately NOT the row's index in
+   whatever is currently on screen: the number travels with the loan, so #14 is
+   the same position whether the tape is sorted by borrower, filtered to REO, or
+   left alone — which makes it a handle a reviewer can call out in a meeting and
+   still have everyone land on the same row. Same comparator as renderTable()'s
+   default so the two can never disagree; the ordinals are dense 1..N over the
+   whole book, so a filtered view shows gaps by design. */
+(function assignOrdinal(){
+  const sidx=s=>{const i=ST_ORDER.indexOf(s);return i<0?ST_ORDER.length:i;};
+  LOANS.slice().sort((a,b)=>
+      (sidx(a.status)-sidx(b.status))
+   || ((b.basis||0)-(a.basis||0))
+   || (a.id<b.id?-1:a.id>b.id?1:0)
+  ).forEach((l,i)=>{l.ord=i+1;});
+})();
+const C={
+  status:{'Performing':PAL.green,'SS Managed':PAL.olive,'Watchlist':PAL.amber,'Problem Loans':PAL.orange,'Foreclosure':PAL.redD,'REO':PAL.redX},
+  dq:{'Current':PAL.green,'30 Days DQ':PAL.amber,'60 Days DQ':PAL.orange,'90+ Days DQ':PAL.red,'Foreclosure':PAL.redD,'REO':PAL.redX}
+};
+const ST_CLS={'Performing':'p-perf','SS Managed':'p-ss','Watchlist':'p-watch','Problem Loans':'p-problem','Foreclosure':'p-fc','REO':'p-reo'};
+const DQ_CLS={'Current':'p-cur','30 Days DQ':'p-30','60 Days DQ':'p-60','90+ Days DQ':'p-90','Foreclosure':'p-fc','REO':'p-reo'};
+const matColor=d=>d==null?PAL.faint:d<0?PAL.rose:d<=90?PAL.coral:d<=180?PAL.amber:PAL.teal;
+const matBucket=d=>d==null?'No date':d<0?'Already matured':d<=90?'0–90 days':d<=180?'91–180 days':'181+ days';
+const MAT_ORDER=['Already matured','0–90 days','91–180 days','181+ days'];
+const MAT_COLORS=[PAL.rose,PAL.coral,PAL.amber,PAL.teal];
+const advColor=a=>a==null?PAL.faint:a>=0.95?PAL.red:a>=0.85?PAL.amber:a>=0.70?PAL.olive:PAL.green;
+const markerColor=(l,m)=>m==='status'?(C.status[l.status]||PAL.faint):m==='dq'?(C.dq[l.dq]||PAL.faint):m==='mat'?matColor(l.d2m):m==='adv'?advColor(l.adv):PAL.blue;
+const LEGENDS={
+  status:ST_ORDER.map(k=>[k,C.status[k]]),
+  dq:DQ_ORDER.map(k=>[k,C.dq[k]]),
+  mat:MAT_ORDER.map((k,i)=>[k,MAT_COLORS[i]]),
+  adv:[['≥95% — thin equity',PAL.red],['85–95%',PAL.amber],['70–85%',PAL.olive],['<70%',PAL.green]]
+};
+
+/* ===== Toggle pills =======================================================
+   One hide-set per surface (loan tape, each change-log table, each map colour
+   mode), one painter, one document-level click handler. A hidden pill is dashed
+   and struck through; "only" isolates one item; "Show all" appears only while
+   something is hidden. Counts are of the rows the pill would show. */
+const CH_HIDE={},CH_LIST={},CH_REDRAW={};
+const hideSet=k=>CH_HIDE[k]||(CH_HIDE[k]=new Set());
+function paintPills(el,key,items,counts,extra){            // items: [[label,color],...]
+  if(!el)return;
+  const hid=hideSet(key),shown=items.filter(it=>counts[it[0]]||hid.has(it[0]));
+  CH_LIST[key]=shown.map(it=>it[0]);
+  el.hidden=!shown.length;
+  el.innerHTML=shown.map(it=>{const s=it[0],on=!hid.has(s);
+    return `<span class="lgi${on?'':' off'}"><button type="button" class="lg" data-ch="${esc(key)}" data-st="${esc(s)}" aria-pressed="${on}">`
+      +`<i class="dot" style="--c:${it[1]}"></i>${esc(s)}<span class="lg-n">${counts[s]||0}</span></button>`
+      +`<button type="button" class="lg-only" data-ch="${esc(key)}" data-only="${esc(s)}" aria-label="Show only ${esc(s)}">only</button></span>`;}).join('')
+    +(hid.size?`<button type="button" class="lg-all" data-ch="${esc(key)}" data-all="1">Show all</button>`:'')+(extra||'');
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-ch]'); if(!b)return;
+  const d=b.dataset,hid=hideSet(d.ch);
+  if(d.all)hid.clear();
+  else if(d.only){hid.clear();(CH_LIST[d.ch]||[]).forEach(s=>{if(s!==d.only)hid.add(s);});}
+  else if(d.st!=null){hid.has(d.st)?hid.delete(d.st):hid.add(d.st);}
+  else return;
+  if(CH_REDRAW[d.ch])CH_REDRAW[d.ch]();
+});
+const ST_ITEMS=ST_ORDER.map(k=>[k,C.status[k]]);
+
+/* ===== KPIs ===== */
+/* Two delinquency measures, and they are nested rather than alternative — the
+   second is a strict subset of the first, so they are meant to be read as a pair.
+   Delinquent Basis is every bucket other than Current; Foreclosure and REO are
+   discrete buckets in their own right and are counted here, never as Current.
+   90+ / FC / REO Basis narrows to the three severe buckets it names — 90+ Days
+   DQ, Foreclosure and REO. The gap between the two figures is the 30- and 60-day
+   book, which is early-stage and frequently cures. Both reconcile to the Basis by
+   Delinquency doughnut, which carries all six buckets. */
+const DQ_SEVERE={'90+ Days DQ':1,'Foreclosure':1,'REO':1};
+const dqL=LOANS.filter(l=>l.dq!=='Current');
+const dqSev=LOANS.filter(l=>DQ_SEVERE[l.dq]);
+/* Portfolio Advance % and the >=95%-advance aggregate were retired from this strip
+   for the 09/18/2026 cycle. Neither measure is gone from the exhibit: advance is
+   still per-position in the tape and the popup, still a map colour mode, and still
+   banded in the Advance % Distribution chart. The strip now carries scale on the
+   left and severity on the right, four across. */
+const kpi=[
+ {lbl:'Total Basis',val:fmtM(TOT),note:LOANS.length+' Loans · Avg '+fmtM(TOT/LOANS.length),k:''},
+ {lbl:'Total Loan Amount',val:fmtM(sum(LOANS,l=>l.tla)),note:'Committed Across Tape',k:''},
+ {lbl:'Delinquent Basis',val:fmtM(sum(dqL,l=>l.basis)),note:dqL.length+' Loans · '+(sum(dqL,l=>l.basis)/TOT*100).toFixed(0)+'% of Book · All Non-Current, Incl. FC &amp; REO',k:'rose',c:'c-rose'},
+ {lbl:'90+&nbsp;/&nbsp;FC&nbsp;/&nbsp;REO Basis',val:fmtM(sum(dqSev,l=>l.basis)),note:dqSev.length+' Loans · '+(sum(dqSev,l=>l.basis)/TOT*100).toFixed(0)+'% of Book · 90+ DQ, Foreclosure &amp; REO',k:'rose',c:'c-rose'},
+];
+document.getElementById('kpis').innerHTML=kpi.map(k=>
+ `<div class="kpi k-${k.k}"><div class="lbl">${k.lbl}</div><div class="val ${k.c||''}">${k.val}</div><div class="note">${k.note}</div><div class="accent"></div></div>`).join('');
+
+/* ===== render integrity: section isolation + fail-loud reporting ===== */
+const FAILURES=[];
+const MSG="Content unavailable \u2014 see the notice at the top of this page.";
+function stamp(el,text){
+  if(!el)return;
+  el.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:120px;'
+    +'padding:22px;text-align:center;color:#7C8B9E;font-size:12px;line-height:1.5">'+(text||MSG)+'</div>';
+}
+function chartFail(id,e){
+  FAILURES.push(['Chart: '+id,e]);
+  const c=document.getElementById(id);
+  if(c&&c.parentNode)stamp(c.parentNode);
+}
+var flyToLoan=function(){};
+
+/* ===== MAP ===== */
+try{
+/* ---- Mapbox GL ------------------------------------------------------------
+   Paste a Mapbox PUBLIC token (starts "pk.") between the quotes. Never use a
+   secret token (starts "sk."): everything in this file is visible to whoever
+   opens it. In the Mapbox account, restrict the token to the site address that
+   serves this page (scheme + host, no path, e.g. https://your-site.pages.dev)
+   and set a usage alert. A restricted token is refused on localhost and on
+   file://, so test on the real address. The page's Referrer-Policy must send the
+   origin (strict-origin), or Mapbox cannot check the restriction and answers 403.
+   Free tier: 50,000 map loads a month. */
+const MAPBOX_TOKEN={{MAPBOX_TOKEN_JS}};
+if(typeof mapboxgl==='undefined'||!/^pk\./.test(MAPBOX_TOKEN)){
+  const err=new Error(typeof mapboxgl==='undefined'?'Mapbox GL did not load':'MAPBOX_TOKEN is not set');
+  err.noToken=/^pk\./.test(MAPBOX_TOKEN)===false;
+  throw err;
+}
+mapboxgl.accessToken=MAPBOX_TOKEN;
+const STYLES={street:'mapbox://styles/mapbox/streets-v12',
+              sat:'mapbox://styles/mapbox/satellite-streets-v12',
+              std:'mapbox://styles/mapbox/standard'};          // Standard = the lit 3D buildings view on the street map
+let curBase='street',is3D=false,colorMode='status',sizeByBasis=true,useCluster=false,popup=null,byKey={};
+const standard=()=>curBase==='street'&&is3D;
+const styleFor=()=>standard()?STYLES.std:STYLES[curBase];
+const mapEl=document.getElementById('map');
+const map=new mapboxgl.Map({container:'map',style:STYLES.street,center:[-96,37.8],zoom:3.6,
+  projection:'mercator',maxPitch:75,attributionControl:true});
+map.addControl(new mapboxgl.NavigationControl({visualizePitch:true}),'top-left');
+// Scroll-zoom is off until the user clicks into the map, then off again when the cursor leaves
+map.scrollZoom.disable();
+map.on('click',()=>map.scrollZoom.enable());
+mapEl.addEventListener('mouseleave',()=>map.scrollZoom.disable());
+// A 401/403 from Mapbox means the token or its URL restriction is wrong: say so on the map.
+let mapNoted=false;
+map.on('error',e=>{
+  const st=e&&e.error&&e.error.status;
+  if((st===401||st===403)&&!mapNoted){mapNoted=true;
+    const n=document.createElement('div');n.className='map-note';
+    n.textContent='Mapbox refused the request (HTTP '+st+'). Check that MAPBOX_TOKEN is a valid public token and that its URL restriction includes this page’s address.';
+    mapEl.appendChild(n);}
+});
+
+const uvals=LOANS.map(l=>l.basis||0),minU=Math.min(...uvals),maxU=Math.max(...uvals);
+const radius=l=>sizeByBasis?(6+Math.sqrt(((l.basis||0)-minU)/(maxU-minU||1))*15):7;
+
+/* ---- marker placement ----------------------------------------------------
+   The 10/09/2026 tape ships two coordinate pairs per position. `lat`/`lon` are
+   the geocoded coordinates of the address of record and are the value of
+   record — nothing on this page mutates them. `dlat`/`dlon` are the display
+   coordinates the tape supplies for cartographic use: identical to the source
+   pair for 184 positions, and carrying a small deliberate offset (8–17 m) for
+   the 37 positions that would otherwise stack on a shared parcel coordinate.
+   De-collision is the tape's decision, not the renderer's guess. */
+const at=l=>[l.dlat!=null?l.dlat:l.lat, l.dlon!=null?l.dlon:l.lon];   // [lat, lon]; GeoJSON wants [lon, lat]
+/* ---- opening frame ------------------------------------------------------
+   Fitted to the contiguous-US footprint, not to the whole book: the tape carries
+   one Hawaii position (Pahoa) that would otherwise drag the frame into the
+   Pacific. Non-contiguous positions are still on the map, still filterable, and
+   double-clicking their tape row still flies to them; they are simply outside
+   the view the map opens on. Falls back to the full extent if nothing is inside. */
+const CONUS_BOX={s:24.0,n:49.5,w:-125.0,e:-66.9};
+const inConus=p=>p[0]>=CONUS_BOX.s&&p[0]<=CONUS_BOX.n&&p[1]>=CONUS_BOX.w&&p[1]<=CONUS_BOX.e;
+const PTS=LOANS.map(at).filter(p=>p[0]!=null&&p[1]!=null);
+const FRAME_PTS=PTS.filter(inConus);
+const FRAME=(FRAME_PTS.length?FRAME_PTS:PTS).reduce((b,p)=>b.extend([p[1],p[0]]),new mapboxgl.LngLatBounds());
+const fitFrame=()=>{if(!FRAME.isEmpty())map.fitBounds(FRAME,{padding:40,duration:0});};
+
+function popupHtml(l){
+  const stCls=ST_CLS[l.status]||'p-other';
+  const dqCls=DQ_CLS[l.dq]||'p-other';
+  const advW=Math.min(100,(l.adv||0)*100);
+  return `<div class="pop">
+    <div class="ph"><div><div class="id">${esc(l.id)}</div><div class="addr">${esc(l.address)}<br>${esc(l.city)}, ${esc(l.state)}</div></div>
+      <span class="pill ${stCls}">${esc(l.status)}</span></div>
+    <div class="pb">
+      <div class="prow"><span class="k">Borrower</span><span class="v">${esc(l.borrower)}</span></div>
+      <div class="prow"><span class="k">${guarLabel(l)}</span><span class="v">${guarText(l)}</span></div>
+      <div class="prow"><span class="k">Originator</span><span class="v">${esc(l.orig)}</span></div>
+      <div class="prow"><span class="k">Delinquency</span><span class="v"><span class="pill ${dqCls}">${esc(l.dq)}</span></span></div>
+      <div class="prow"><span class="k">Basis</span><span class="v mono">${fmt$(l.basis)}</span></div>
+      <div class="prow"><span class="k">Total Loan Amount</span><span class="v mono">${fmt$(l.tla)}</span></div>
+      <div class="prow"><span class="k">Advance %</span><span class="v mono">${pct(l.adv)}</span></div>
+      <div class="bar"><i style="width:${advW}%;background:${advColor(l.adv)}"></i></div>
+      <div class="prow" style="margin-top:7px"><span class="k">Holdback Disbursed</span><span class="v mono">${fmt$(l.hbd)}</span></div>
+      <div class="prow"><span class="k">Holdback Remaining</span><span class="v mono">${fmt$(l.hbr)}</span></div>
+      <div class="prow"><span class="k">Interest Reserve</span><span class="v mono">${fmt$(l.ires)}</span></div>
+      <div class="prow"><span class="k">Origination</span><span class="v mono">${fmtDate(l.orig_date)}</span></div>
+      <div class="prow"><span class="k">Maturity</span><span class="v mono">${fmtDate(l.maturity)}</span></div>
+      <div class="prow"><span class="k">Days to Maturity</span><span class="v mono" style="color:${matColor(l.d2m)}">${l.d2m==null?'—':l.d2m}</span></div>
+      ${l.notes?`<div class="notes"><b>Asset note${l.nupd?` &middot; updated ${fmtDate(l.nupd)}`:' &middot; undated'}:</b> ${esc(l.notes)}</div>`:''}
+    </div></div>`;
+}
+
+/* ---- legend = filter ------------------------------------------------------
+   One chip per legend entry of the current colour mode. Hiding a chip hides those
+   pins; the choice is kept per colour mode, so switching mode and back restores it. */
+const advBand=a=>a==null?'':a>=0.95?LEGENDS.adv[0][0]:a>=0.85?LEGENDS.adv[1][0]:a>=0.70?LEGENDS.adv[2][0]:LEGENDS.adv[3][0];
+const keyOf=(l,m)=>m==='status'?l.status:m==='dq'?l.dq:m==='mat'?matBucket(l.d2m):advBand(l.adv);
+const mapKey=m=>'map:'+m;
+const visible=l=>!hideSet(mapKey(colorMode)).has(keyOf(l,colorMode));
+
+const features=()=>{byKey={};
+  return {type:'FeatureCollection',features:LOANS.filter(l=>visible(l)&&at(l)[0]!=null&&at(l)[1]!=null).map(l=>{
+    const p=at(l);byKey[l.id]=l;
+    return {type:'Feature',geometry:{type:'Point',coordinates:[p[1],p[0]]},
+            properties:{key:l.id,r:radius(l),c:markerColor(l,colorMode)}};})};
+};
+function addPoints(){
+  ['pts','cluster-count','clusters'].forEach(id=>{if(map.getLayer(id))map.removeLayer(id);});
+  if(map.getSource('pos'))map.removeSource('pos');
+  map.addSource('pos',{type:'geojson',data:features(),promoteId:'key',cluster:useCluster,clusterRadius:44,clusterMaxZoom:14});
+  map.addLayer({id:'clusters',type:'circle',source:'pos',filter:['has','point_count'],
+    paint:{'circle-color':'#16283F','circle-opacity':.88,'circle-radius':['step',['get','point_count'],14,10,18,30,23],
+           'circle-stroke-width':2,'circle-stroke-color':'#fff'}});
+  map.addLayer({id:'cluster-count',type:'symbol',source:'pos',filter:['has','point_count'],
+    layout:{'text-field':['get','point_count_abbreviated'],'text-font':['DIN Pro Medium','Arial Unicode MS Bold'],'text-size':11,'text-allow-overlap':true},
+    paint:{'text-color':'#fff'}});
+  map.addLayer({id:'pts',type:'circle',source:'pos',filter:['!',['has','point_count']],
+    layout:{'circle-sort-key':['-',0,['get','r']]},                         // small pins draw on top of big ones
+    paint:{'circle-radius':['get','r'],'circle-color':['get','c'],'circle-opacity':.92,
+           'circle-stroke-width':['case',['boolean',['feature-state','hover'],false],3,1.5],
+           'circle-stroke-color':['case',['boolean',['feature-state','hover'],false],'#16283F','#ffffff']}});
+}
+const drawMarkers=()=>{const s=map.getSource('pos');if(s)s.setData(features());};
+
+/* ---- 3D ---------------------------------------------------------------------
+   Street + 3D swaps to Mapbox's Standard style (lit buildings, landmarks, trees).
+   Satellite + 3D keeps the imagery and adds terrain, shaded building blocks and sky.
+   setStyle() removes every custom source and layer, so all of this is rebuilt on
+   'style.load' and each step checks whether it already exists. */
+const firstSymbolId=()=>{const ls=map.getStyle().layers;for(const l of ls){if(l.type==='symbol')return l.id;}return undefined;};
+function apply3D(){
+  if(!map.getSource('mapbox-dem'))map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512,maxzoom:14});
+  map.setTerrain(is3D?{source:'mapbox-dem',exaggeration:1.25}:null);
+  if(!map.getSource('mb-streets'))map.addSource('mb-streets',{type:'vector',url:'mapbox://mapbox.mapbox-streets-v8'});
+  if(!map.getLayer('bld3d'))map.addLayer({id:'bld3d',type:'fill-extrusion',source:'mb-streets','source-layer':'building',minzoom:14,
+      filter:['==',['get','extrude'],'true'],layout:{visibility:'none'},
+      paint:{'fill-extrusion-vertical-gradient':true,
+             'fill-extrusion-color':['interpolate',['linear'],['get','height'],0,'#D9DFE7',40,'#B7C1CE',120,'#8E9CB0',300,'#66768D'],
+             'fill-extrusion-height':['get','height'],'fill-extrusion-base':['get','min_height'],'fill-extrusion-opacity':.88}},
+    firstSymbolId());                                    // below the labels so labels stay readable
+  if(!map.getLayer('sky3d'))map.addLayer({id:'sky3d',type:'sky',layout:{visibility:'none'},
+      paint:{'sky-type':'atmosphere','sky-atmosphere-sun':[0,0],'sky-atmosphere-sun-intensity':8}});
+  ['bld3d','sky3d'].forEach(id=>map.setLayoutProperty(id,'visibility',is3D?'visible':'none'));
+}
+function setupLayers(){if(!standard())apply3D();addPoints();}
+map.on('style.load',setupLayers);
+
+function setBase(b){
+  if(b===curBase)return;
+  curBase=b;
+  document.querySelectorAll('#baseSeg button').forEach(x=>x.classList.toggle('active',x.dataset.b===b));
+  syncSeg('#baseSeg');
+  map.setStyle(styleFor(),{diff:false});
+}
+function set3D(on){
+  is3D=on;
+  document.querySelectorAll('#viewSeg button').forEach(x=>x.classList.toggle('active',(x.dataset.v==='3d')===on));
+  syncSeg('#viewSeg');
+  if(curBase==='street')map.setStyle(styleFor(),{diff:false});
+  else if(map.isStyleLoaded())apply3D();
+  map.easeTo({pitch:on?62:0,duration:900});
+}
+
+/* ---- popups ---------------------------------------------------------------- */
+const popMaxH=()=>Math.max(150,Math.min(440,mapEl.clientHeight-100));
+function closePopup(){if(popup){popup.remove();popup=null;}}
+function openPopup(l,above){
+  closePopup(); if(!l)return;
+  const p=at(l); if(p[0]==null||p[1]==null)return;
+  popup=new mapboxgl.Popup({maxWidth:'342px',offset:radius(l)+3,closeButton:true,...(above?{anchor:'bottom'}:{})})
+    .setLngLat([p[1],p[0]]).setHTML(popupHtml(l)).addTo(map);
+  popup.on('close',()=>{popup=null;});
+  popup.getElement().querySelector('.mapboxgl-popup-content').style.maxHeight=popMaxH()+'px';   // scrolls on a short map
+}
+let hoverId=null;
+const setHover=(id,on)=>{if(id!=null&&map.getSource('pos'))map.setFeatureState({source:'pos',id},{hover:on});};
+map.on('click','pts',e=>{const f=e.features[0];if(f)openPopup(byKey[f.properties.key]);});
+map.on('click','clusters',e=>{const f=e.features[0];
+  map.getSource('pos').getClusterExpansionZoom(f.properties.cluster_id,(err,z)=>{if(!err)map.easeTo({center:f.geometry.coordinates,zoom:z+0.4});});});
+map.on('mousemove','pts',e=>{map.getCanvas().style.cursor='pointer';
+  const f=e.features[0];if(!f||f.properties.key===hoverId)return;
+  setHover(hoverId,false);hoverId=f.properties.key;setHover(hoverId,true);});
+map.on('mouseleave','pts',()=>{map.getCanvas().style.cursor='';setHover(hoverId,false);hoverId=null;});
+map.on('mouseenter','clusters',()=>{map.getCanvas().style.cursor='pointer';});
+map.on('mouseleave','clusters',()=>{map.getCanvas().style.cursor='';});
+
+/* ---- fly to a loan (double-click a tape row, or pick a search result) -------
+   The popup always opens above the pin and the camera is offset so the pin sits low
+   in the map, leaving room for the whole popup whatever the map height. */
+flyToLoan=function(id){
+  const l=LOANS.find(x=>x.id===id); if(!l)return;
+  const p=at(l); if(p[0]==null||p[1]==null)return;
+  if(!visible(l)){hideSet(mapKey(colorMode)).delete(keyOf(l,colorMode));drawMarkers();renderLegend();}
+  setBase('sat');
+  mapEl.scrollIntoView({behavior:'smooth',block:'center'});
+  map.resize();
+  closePopup();
+  const h=mapEl.clientHeight,popH=popMaxH(),pinY=Math.min(h-30,popH+38);   // where the pin should land, from the top
+  map.flyTo({center:[p[1],p[0]],zoom:18,pitch:is3D?62:0,offset:[0,pinY-h/2],duration:1500,essential:true});
+  map.once('moveend',()=>openPopup(l,true));
+  setTimeout(()=>{if(!popup)openPopup(l,true);},2300);                     // safety net if moveend never fires
+};
+
+/* ---- search control -------------------------------------------------------- */
+class MapSearch{
+  onAdd(){
+    const c=this._c=document.createElement('div');
+    c.className='mapboxgl-ctrl mapboxgl-ctrl-group mapsearch';
+    c.innerHTML='<button type="button" class="ms-btn" aria-label="Search loans on the map" title="Search loans">'
+      +'<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M13 13l4.5 4.5"/></svg></button>'
+      +'<div class="ms-panel" hidden><input type="search" autocomplete="off" spellcheck="false" aria-label="Search loans" placeholder="Loan ID, address, city, borrower…"><ul role="listbox"></ul></div>';
+    const btn=c.querySelector('.ms-btn'),panel=c.querySelector('.ms-panel'),inp=c.querySelector('input'),ul=c.querySelector('ul');
+    let hits=[],sel=-1;
+    const hay=l=>[l.id,l.borrower,l.address,l.city,l.state,l.orig].concat(guarList(l)).join(' ').toLowerCase();
+    const paint=()=>{
+      ul.innerHTML=hits.length?hits.map((l,i)=>`<li role="option" data-id="${esc(l.id)}" class="${i===sel?'on':''}"><b>${esc(l.id)}</b> ${esc(l.address)}`
+        +`<span>${esc(l.city)}, ${esc(l.state)} &middot; ${fmt$(l.basis)}</span></li>`).join('')
+        :(inp.value.trim()?'<li class="none">No loans match.</li>':'');
+    };
+    const run=()=>{
+      const ws=inp.value.toLowerCase().split(/\s+/).filter(Boolean);
+      hits=ws.length?LOANS.filter(l=>{const h=hay(l);return ws.every(w=>h.indexOf(w)>-1);})
+        .sort((a,b)=>((b.id.toLowerCase()===ws[0])-(a.id.toLowerCase()===ws[0]))||((b.basis||0)-(a.basis||0))).slice(0,8):[];
+      sel=hits.length?0:-1;paint();
+    };
+    const pick=id=>{panel.hidden=true;inp.value='';hits=[];paint();flyToLoan(id);};
+    btn.onclick=()=>{panel.hidden=!panel.hidden;if(!panel.hidden)inp.focus();};
+    inp.oninput=run;
+    inp.onkeydown=e=>{
+      if(e.key==='ArrowDown'&&hits.length){e.preventDefault();sel=(sel+1)%hits.length;paint();}
+      else if(e.key==='ArrowUp'&&hits.length){e.preventDefault();sel=(sel-1+hits.length)%hits.length;paint();}
+      else if(e.key==='Enter'&&hits[sel]){e.preventDefault();pick(hits[sel].id);}
+      else if(e.key==='Escape'){panel.hidden=true;btn.focus();}
+    };
+    ul.onclick=e=>{const li=e.target.closest('li[data-id]');if(li)pick(li.dataset.id);};
+    return c;
+  }
+  onRemove(){this._c.remove();}
+}
+map.addControl(new MapSearch(),'top-left');
+
+/* ---- controls ---------------------------------------------------------------- */
+/* Segmented controls are toggle buttons; expose the selected one to assistive tech. */
+function syncSeg(sel){document.querySelectorAll(sel+' button').forEach(x=>x.setAttribute('aria-pressed',x.classList.contains('active')?'true':'false'));}
+function renderLegend(){
+  const counts={};
+  LOANS.forEach(l=>{const k=keyOf(l,colorMode);counts[k]=(counts[k]||0)+1;});
+  paintPills(document.getElementById('mapLegend'),mapKey(colorMode),LEGENDS[colorMode],counts,
+    `<span class="spacer">Marker size ∝ Basis${sizeByBasis?'':' (off)'}</span>`);
+}
+['status','dq','mat','adv'].forEach(m=>{CH_REDRAW[mapKey(m)]=()=>{drawMarkers();renderLegend();};});
+document.querySelectorAll('#baseSeg button').forEach(b=>b.onclick=()=>setBase(b.dataset.b));
+document.querySelectorAll('#viewSeg button').forEach(b=>b.onclick=()=>{if((b.dataset.v==='3d')!==is3D)set3D(b.dataset.v==='3d');});
+document.querySelectorAll('#colorSeg button').forEach(b=>b.onclick=()=>{
+  if(b.dataset.m===colorMode)return;
+  document.querySelectorAll('#colorSeg button').forEach(x=>x.classList.remove('active'));b.classList.add('active');
+  syncSeg('#colorSeg');
+  colorMode=b.dataset.m;drawMarkers();renderLegend();
+});
+document.getElementById('clusterChk').onchange=e=>{useCluster=e.target.checked;addPoints();};
+document.getElementById('sizeChk').onchange=e=>{sizeByBasis=e.target.checked;drawMarkers();renderLegend();};
+syncSeg('#baseSeg');syncSeg('#colorSeg');syncSeg('#viewSeg');
+renderLegend();
+fitFrame();
+// Robust sizing: the map sits below the fold, so its container may not be laid out
+// when the script runs. Recalculate size the first time it scrolls into view, and
+// again on window resize — no reliance on a fixed timeout.
+(function ensureMapSized(){
+  const refit=()=>{map.resize();fitFrame();};
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver((ents,obs)=>{ents.forEach(e=>{if(e.isIntersecting){refit();obs.disconnect();}});},{threshold:0.1});
+    io.observe(mapEl);
+  } else { setTimeout(refit,300); }
+  let rt=null;
+  window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>map.resize(),150);});
+})();
+}catch(e){
+  FAILURES.push(['Geographic exposure map',e]);
+  stamp(document.getElementById('map'),e&&e.noToken?'Map needs a Mapbox public token \u2014 set MAPBOX_TOKEN in this file (see the comment above it).':'Map unavailable \u2014 see the notice at the top of this page.');
+  const lg=document.getElementById('mapLegend'); if(lg)lg.innerHTML='';
+}
+
+/* ===== CHARTS ===== */
+try{
+  Chart.defaults.color='#4A5B72';Chart.defaults.font.family="'Inter','Helvetica Neue',Helvetica,Arial,sans-serif";Chart.defaults.font.size=11;
+  Chart.defaults.font.weight='400';Chart.defaults.borderColor='rgba(22,40,63,.06)';
+  Chart.defaults.plugins.tooltip.backgroundColor='#16283F';Chart.defaults.plugins.tooltip.titleFont={weight:'600',size:11.5};
+  Chart.defaults.plugins.tooltip.bodyFont={weight:'400',size:11};Chart.defaults.plugins.tooltip.padding=10;
+  Chart.defaults.plugins.tooltip.cornerRadius=4;
+  Chart.defaults.plugins.legend.labels.boxWidth=10;Chart.defaults.plugins.legend.labels.boxHeight=10;
+  Chart.defaults.plugins.legend.labels.padding=12;Chart.defaults.plugins.legend.labels.font={weight:'500'};
+}catch(e){FAILURES.push(['Chart library',e]);}
+const grid='rgba(22,40,63,.06)';
+/* Performance split for the originator / state bars. This is a payment-status test and
+   is deliberately independent of the Status column: Status has its own 'Performing'
+   bucket (a servicing designation), whereas this keys off Delinquency only. */
+const PERF_DQ=['Current','30 Days DQ'];
+const isPerf=l=>PERF_DQ.indexOf(l.dq)>-1;
+/* Returns rows of {key, perf, nonperf, total, nPerf, nNon} sorted by total Basis desc. */
+const splitByKey=(k,n)=>{
+  const m={};
+  LOANS.forEach(l=>{
+    const key=l[k]||'—';
+    if(!m[key])m[key]={key,perf:0,nonperf:0,total:0,nPerf:0,nNon:0};
+    const r=m[key],u=l.basis||0;
+    if(isPerf(l)){r.perf+=u;r.nPerf++;}else{r.nonperf+=u;r.nNon++;}
+    r.total+=u;
+  });
+  return Object.values(m).sort((a,b)=>b.total-a.total).slice(0,n);
+};
+/* Stacked tooltip: per-segment dollars, share of that row, loan count; footer carries the row total. */
+const ttSplit=rows=>({
+  callbacks:{
+    title:items=>items.length?String(rows[items[0].dataIndex].key):'',
+    label:c=>{
+      const r=rows[c.dataIndex],isP=c.datasetIndex===0;
+      const v=isP?r.perf:r.nonperf,n=isP?r.nPerf:r.nNon;
+      return ' '+(isP?'Performing':'Non-Performing')+': '+money(v)
+        +'  ('+(r.total?(v/r.total*100).toFixed(0):0)+'% of row)  ·  '+n+(n===1?' loan':' loans');
+    },
+    footer:items=>{
+      const r=rows[items[0].dataIndex];
+      return 'Total '+money(r.total)+'  ·  '+(r.total/TOT*100).toFixed(1)+'% of book';
+    }
+  }
+});
+const splitOpts=rows=>({
+  indexAxis:'y',maintainAspectRatio:false,layout:{padding:{right:6}},
+  interaction:{mode:'index',axis:'y',intersect:false},
+  plugins:{
+    legend:{position:'top',align:'start',labels:{boxWidth:10,boxHeight:10,padding:10,font:{size:10.5,weight:'500'}}},
+    tooltip:Object.assign({mode:'index',axis:'y',intersect:false,position:'nearest'},ttSplit(rows))
+  },
+  scales:{
+    x:{stacked:true,grid:{color:grid},ticks:{callback:v=>'$'+v/1e6+'M'}},
+    y:{stacked:true,grid:{display:false},ticks:{autoSkip:false,font:{size:10.5,weight:'400'},crossAlign:'far'}}
+  }
+});
+const splitData=rows=>({
+  labels:rows.map(r=>r.key),
+  datasets:[
+    {label:'Performing',data:rows.map(r=>r.perf),backgroundColor:PAL.green,borderRadius:{topLeft:0,bottomLeft:0,topRight:0,bottomRight:0},barPercentage:.82},
+    {label:'Non-Performing',data:rows.map(r=>r.nonperf),backgroundColor:PAL.amber,borderRadius:{topRight:4,bottomRight:4},barPercentage:.82}
+  ]
+});
+/* Fixed two-column legend for the doughnuts: six entries always land as 3 even rows. */
+function gridLegend(id,items){
+  const el=document.getElementById(id); if(!el)return;
+  el.style.gridAutoFlow='column';
+  el.style.gridTemplateRows='repeat('+Math.ceil(items.length/2)+',auto)';
+  el.innerHTML=items.map(([lab,col,val,n])=>
+    `<span class="it"><i class="sw" style="background:${col}"></i>`
+    +`<span class="lb">${esc(lab)}</span>`
+    +(n==null?'':`<span class="ct">(${n})</span>`)
+    +`<span class="vl">${money(val)}</span></span>`).join('');
+}
+// tooltip: dollars + % of book + loan count (counts array aligned to label order)
+const ttPctN=counts=>({callbacks:{label:c=>{const n=counts[c.dataIndex];return ' '+money(c.raw)+'  ('+(c.raw/TOT*100).toFixed(1)+'%)  ·  '+n+(n===1?' loan':' loans');}}});
+
+/* matBucket() also returns 'No date' for a null d2m, which MAT_ORDER does not carry —
+   those loans were dropped from this chart without trace, so the bars no longer summed
+   to Total Basis. Mirror the 'Unclassified' handling used by the two doughnuts. Note the
+   slice(): MAT_ORDER is shared with LEGENDS and must not be mutated. */
+try{const order=MAT_ORDER.slice();const cols=MAT_COLORS.slice();const m={};const cn={};order.forEach(k=>{m[k]=0;cn[k]=0;});
+ let oU=0,oN=0;
+ LOANS.forEach(l=>{const b=matBucket(l.d2m);if(m[b]!=null){m[b]+=(l.basis||0);cn[b]++;}else{oU+=(l.basis||0);oN++;}});
+ if(oN){order.push('No date');cols.push(PAL.faint);m['No date']=oU;cn['No date']=oN;}
+ new Chart(cMat,{type:'bar',data:{labels:order,datasets:[{data:order.map(k=>m[k]),backgroundColor:cols,borderRadius:5,barPercentage:.72}]},
+  options:{plugins:{legend:{display:false},tooltip:ttPctN(order.map(k=>cn[k]))},maintainAspectRatio:false,
+   scales:{x:{grid:{display:false},ticks:{font:{size:11.5,weight:'500'}}},y:{grid:{color:grid},ticks:{callback:v=>'$'+v/1e6+'M'}}}}});}catch(e){chartFail('cMat',e);}
+try{const order=ST_ORDER.slice();const m={};const cn={};order.forEach(k=>{m[k]=0;cn[k]=0;});
+ let oU=0,oN=0;LOANS.forEach(l=>{if(m[l.status]!=null){m[l.status]+=(l.basis||0);cn[l.status]++;}else{oU+=(l.basis||0);oN++;}});
+ if(oN){order.push('Unclassified');m['Unclassified']=oU;cn['Unclassified']=oN;C.status['Unclassified']=PAL.faint;}
+ new Chart(cStatus,{type:'doughnut',data:{labels:order,datasets:[{data:order.map(k=>m[k]),backgroundColor:order.map(k=>C.status[k]),borderColor:'#fff',borderWidth:3}]},
+  options:{cutout:'60%',maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:ttPctN(order.map(k=>cn[k]))}}});
+ gridLegend('lStatus',order.map(k=>[k,C.status[k],m[k],cn[k]]));}catch(e){chartFail('cStatus',e);}
+try{const order=DQ_ORDER.slice();const m={};const cn={};order.forEach(k=>{m[k]=0;cn[k]=0;});
+ let oU=0,oN=0;LOANS.forEach(l=>{if(m[l.dq]!=null){m[l.dq]+=(l.basis||0);cn[l.dq]++;}else{oU+=(l.basis||0);oN++;}});
+ if(oN){order.push('Unclassified');m['Unclassified']=oU;cn['Unclassified']=oN;C.dq['Unclassified']=PAL.faint;}
+ new Chart(cDq,{type:'doughnut',data:{labels:order,datasets:[{data:order.map(k=>m[k]),backgroundColor:order.map(k=>C.dq[k]),borderColor:'#fff',borderWidth:3}]},
+  options:{cutout:'60%',maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:ttPctN(order.map(k=>cn[k]))}}});
+ gridLegend('lDq',order.map(k=>[k,C.dq[k],m[k],cn[k]]));}catch(e){chartFail('cDq',e);}
+try{const rows=splitByKey('orig',10);
+ new Chart(cOrig,{type:'bar',data:splitData(rows),options:splitOpts(rows)});}catch(e){chartFail('cOrig',e);}
+try{const rows=splitByKey('state',10);
+ new Chart(cState,{type:'bar',data:splitData(rows),options:splitOpts(rows)});}catch(e){chartFail('cState',e);}
+try{const labels=['<70%','70–85%','85–95%','≥95%'];const cnt=[0,0,0,0];
+ LOANS.forEach(l=>{const a=l.adv;if(a==null)return;const i=a<.7?0:a<.85?1:a<.95?2:3;cnt[i]++;});
+ const advN=cnt.reduce((s,x)=>s+x,0);
+ new Chart(cAdv,{type:'bar',data:{labels,datasets:[{data:cnt,backgroundColor:[PAL.green,PAL.olive,PAL.amber,PAL.red],borderRadius:5,barPercentage:.7}]},
+  options:{maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+c.raw+' loans  ('+(c.raw/advN*100).toFixed(1)+'%)'}}},scales:{x:{grid:{display:false},ticks:{font:{size:11.5,weight:'500'}}},y:{grid:{color:grid},ticks:{precision:0},title:{display:true,text:'Loans',font:{weight:'500',size:10.5}}}}}});}catch(e){chartFail('cAdv',e);}
+
+/* ===== TOP BORROWERS (toggle: TLA or Basis) ===== */
+try{
+  const TOT_TLA=sum(LOANS,l=>l.tla);
+  const TOT_BASIS=sum(LOANS,l=>l.basis);
+  const agg={};
+  LOANS.forEach(l=>{
+    const b=l.borrower||'—';
+    if(!agg[b])agg[b]={tla:0,basis:0,n:0,cities:{}};
+    agg[b].tla+=(l.tla||0); agg[b].basis+=(l.basis||0); agg[b].n++;
+    const loc=l.city+', '+l.state; agg[b].cities[loc]=(agg[b].cities[loc]||0)+1;
+  });
+  const locOf=c=>{const keys=Object.keys(c);if(keys.length===1)return esc(keys[0]);
+    const main=keys.sort((a,b)=>c[b]-c[a])[0];return esc(main)+' <span class="tb-sub">(+'+(keys.length-1)+' more)</span>';};
+  const tbBody=document.getElementById('topBorrowers');
+  const headBasis=document.getElementById('tbHeadBasis');
+  const headTla=document.getElementById('tbHeadTla');
+  const headPct=document.getElementById('tbHeadPct');
+
+  function renderTopBorrowers(metric){ // 'tla' | 'basis'
+    const denom = metric==='tla' ? TOT_TLA : TOT_BASIS;
+    const top=Object.entries(agg).sort((a,b)=>b[1][metric]-a[1][metric]).slice(0,5);
+    // emphasize the active metric column header, and make % reflect that metric
+    headTla.classList.toggle('tb-active', metric==='tla');
+    headBasis.classList.toggle('tb-active', metric==='basis');
+    headPct.textContent = metric==='tla' ? '% of TLA' : '% of Basis';
+    tbBody.innerHTML=top.map(([name,v],i)=>{
+      const util=v.tla>0?v.basis/v.tla*100:0;
+      const pctVal=(v[metric]/denom*100).toFixed(1);
+      const basisCell=`<td class="num ctr${metric==='basis'?' tb-active':''}">${fmtM(v.basis)}</td>`;
+      const tlaCell=`<td class="num ctr${metric==='tla'?' tb-active':''}">${fmtM(v.tla)}</td>`;
+      return `<tr>
+        <td title="${esc(name)}"><span class="tb-rank">${i+1}</span> <span class="tb-name">${esc(name)}</span></td>
+        <td class="tb-loc">${locOf(v.cities)}</td>
+        <td class="num ctr">${v.n}</td>
+        ${basisCell}${tlaCell}
+        <td class="num ctr">${pctVal}%</td>
+        <td><div class="tb-util"><div class="tb-bar"><i style="width:${util.toFixed(0)}%"></i></div><span class="tb-utilpct">${util.toFixed(0)}%</span></div></td>
+      </tr>`;}).join('');
+  }
+  let tbMetric='basis';
+  renderTopBorrowers(tbMetric);
+  document.querySelectorAll('#tbSeg button').forEach(b=>b.onclick=()=>{
+    if(b.dataset.metric===tbMetric)return;
+    document.querySelectorAll('#tbSeg button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active'); tbMetric=b.dataset.metric; renderTopBorrowers(tbMetric);
+  });
+}catch(e){
+  FAILURES.push(['Top borrowers',e]);
+  const tb=document.getElementById('topBorrowers');
+  if(tb)tb.innerHTML='<tr><td colspan="7" style="padding:22px;text-align:center;color:#7C8B9E;font-size:12px">'+MSG+'</td></tr>';
+}
+
+/* ===== TABLE ===== */
+try{
+const body=document.getElementById('tapeBody');
+const totEl=document.getElementById('tapeTotals');
+const searchEl=document.getElementById('search');
+const clearEl=document.getElementById('searchClear');
+const countEl=document.getElementById('searchN');
+/* Default order: Status ascending through ST_ORDER (so Performing heads the tape),
+   then descending Basis inside each status band via the tie-breaker below. */
+let sortK='status',sortDir=1,Q={free:[],scoped:[],active:false};
+const stPill=s=>`<span class="pill ${ST_CLS[s]||'p-other'}">${esc(s)}</span>`;
+const dqPill=d=>`<span class="pill ${DQ_CLS[d]||'p-other'}">${esc(d)}</span>`;
+
+/* Searchable text, built once per loan and cached on first use.
+   'address' was advertised in the input's placeholder but missing from the
+   haystack, so most positions could not be found by their street name
+   (e.g. "Jonesboro", "Mincey", "Keystone" all returned nothing). Maturity, the
+   asset note and both guarantor columns are
+   included too: all are things a reviewer reads off this tape and then tries to
+   search for. A guarantor is also reachable as a scoped term (guarantor:, g:,
+   sponsor:), which tests the two guarantor columns as one field. */
+const HAY=new WeakMap();
+function hay(l){
+  let h=HAY.get(l);
+  if(h===undefined){
+    // both date forms: the ISO value in the tape and the MM/DD/YYYY the cell renders
+    h=[l.id,l.borrower,l.g1,l.g2,l.address,l.city,l.state,l.orig,l.status,l.dq,
+       l.maturity,fmtDate(l.maturity),l.orig_date,l.notes,l.nupd,fmtDate(l.nupd),fmtDateS(l.nupd)]
+        .filter(Boolean).join('  ').toLowerCase();
+    HAY.set(l,h);
+  }
+  return h;
+}
+/* Space-separated terms are ANDed. The old single-substring test could only match
+   terms that happened to sit adjacent in one fixed field order, so a natural query
+   like "miami watchlist" matched nothing. */
+function matches(l){
+  const h=hay(l);
+  for(let i=0;i<Q.free.length;i++)if(h.indexOf(Q.free[i])<0)return false;
+  for(let i=0;i<Q.scoped.length;i++){
+    const f=Q.scoped[i][0],v=Q.scoped[i][1];
+    // '_g' is the synthetic guarantor field: a hit on either guarantor counts.
+    // '_u' is the note-date field, which is tested in all three forms it appears
+    // in — the tape's ISO value, the MM/DD/YYYY of the popup and expanded note,
+    // and the MM/DD/YY the Note Upd. column renders — so "updated:09/14/26" finds
+    // what a reviewer actually read off the screen.
+    const fv=f==='_g'?[l.g1,l.g2].filter(Boolean).join('  ').toLowerCase()
+            :f==='_u'?[l.nupd,fmtDate(l.nupd),fmtDateS(l.nupd)].filter(Boolean).join('  ').toLowerCase()
+                     :String(l[f]==null?'':l[f]).toLowerCase();
+    // state codes are exact by nature; every other field reads better as a substring
+    if(f==='state'?fv!==v:fv.indexOf(v)<0)return false;
+  }
+  return true;
+}
+/* Optional field scoping. Free text is a substring match across the whole row,
+   which is the right default but is noisy for very short terms — "ca" also hits
+   "Alto Capital" and "Carolina". "state:ca" resolves that, and reads the way an
+   analyst would write it. */
+const FIELD={id:'id',loan:'id',borrower:'borrower',b:'borrower',address:'address',addr:'address',
+  street:'address',city:'city',state:'state',st:'state',orig:'orig',originator:'orig',
+  status:'status',dq:'dq',delinquency:'dq',maturity:'maturity',mat:'maturity',note:'notes',notes:'notes',
+  updated:'_u',noteupd:'_u',notedate:'_u',
+  // guarantor spans two columns, so it is the one scoped term that tests a pair
+  guarantor:'_g',guar:'_g',g:'_g',sponsor:'_g'};
+function parseQuery(raw){
+  const free=[],scoped=[];
+  String(raw||'').toLowerCase().split(/\s+/).filter(Boolean).forEach(t=>{
+    const m=/^([a-z]+):(.+)$/.exec(t);
+    if(m&&FIELD[m[1]])scoped.push([FIELD[m[1]],m[2]]);else free.push(t);
+  });
+  return {free:free,scoped:scoped,active:free.length>0||scoped.length>0};
+}
+
+function cmpVals(x,y){
+  const xn=x==null||x==='',yn=y==null||y==='';
+  if(xn&&yn)return 0;
+  if(xn)return 1;            // blanks sort last regardless of direction
+  if(yn)return -1;
+  if(typeof x==='string'||typeof y==='string')return String(x).localeCompare(String(y),undefined,{numeric:true,sensitivity:'base'});
+  return x-y;                // NaN was possible here when a string met a null
+}
+function renderTable(){
+  let rows=Q.active?LOANS.filter(matches):LOANS.slice();
+  /* Status pills sit on top of the text filter: counts are of the rows the search
+     leaves, then hidden statuses are dropped from what is drawn. */
+  const stCounts={};rows.forEach(l=>{stCounts[l.status]=(stCounts[l.status]||0)+1;});
+  paintPills(document.getElementById('tapePills'),'tape',ST_ITEMS,stCounts);
+  const stHid=hideSet('tape'),pillsOn=stHid.size>0;
+  if(pillsOn)rows=rows.filter(l=>!stHid.has(l.status));
+  rows.sort((a,b)=>{
+    let primary;
+    if(sortK==='status'||sortK==='dq'){
+      const ord=sortK==='status'?ST_ORDER:DQ_ORDER;
+      const ia=ord.indexOf(a[sortK]),ib=ord.indexOf(b[sortK]);
+      primary=sortDir*((ia<0?ord.length:ia)-(ib<0?ord.length:ib));
+    }
+    else{
+      const c=cmpVals(a[sortK],b[sortK]);
+      primary=(c===0)?0:(a[sortK]==null||a[sortK]===''||b[sortK]==null||b[sortK]==='')?c:sortDir*c;
+    }
+    if(primary!==0)return primary;
+    // tie-breaker: descending Basis, then loan id so the order is fully deterministic
+    const u=(b.basis||0)-(a.basis||0);
+    return u!==0?u:(a.id<b.id?-1:a.id>b.id?1:0);
+  });
+  // Totals track the active filter, so a filtered view never reads as a book total.
+  if(totEl){
+    const tU=sum(rows,l=>l.basis),tT=sum(rows,l=>l.tla);
+    totEl.innerHTML=`(Total Basis = <b>${fmt$(tU)}</b> · Total TLA = <b>${fmt$(tT)}</b>)`
+      +((Q.active||pillsOn)?` <span class="flt">Filtered · ${rows.length} of ${LOANS.length}</span>`:'');
+  }
+  // Filter feedback next to the input, and an explicit empty state: an unmatched
+  // query previously emptied the table with no explanation at all.
+  if(countEl)countEl.textContent=(Q.active||pillsOn)?rows.length+' of '+LOANS.length:'';
+  if(clearEl)clearEl.classList.toggle('on',Q.active);
+  if(!rows.length){
+    body.innerHTML=`<tr><td colspan="14"><div class="tape-empty">`
+      +(Q.active?`No positions match <b>${esc(searchEl?searchEl.value.trim():'')}</b>${pillsOn?' with the current status filter':''}.`:'Every status is hidden. Use <b>Show all</b> above the table.')
+      +`<span class="hintq">All space-separated terms must match. Try fewer terms, or scope one to a column &mdash; <b>state:fl</b>, <b>city:miami</b>, <b>guarantor:hughes</b>, <b>status:reo</b>, <b>dq:current</b>, <b>orig:alto</b>, <b>addr:ocean</b>.</span>`
+      +`</div></td></tr>`;
+    return;
+  }
+  body.innerHTML=rows.map((l,i)=>{
+    const g=guarList(l);
+    const gLine=g.length
+      ? `<div class="nb-g"><b>${g.length>1?'Guarantors':'Guarantor'}:</b> ${g.map(esc).join(' <span class="nb-sep">·</span> ')}</div>`
+      : `<div class="nb-g"><b>Guarantor:</b> <span class="empty">None of record.</span></div>`;
+    /* The note stamp is the tape's "Notes Last Updated" value, new for the 09/18/2026
+       09/18/2026 cycle. It is reported exactly as supplied: a note with no date
+       reads "date not recorded" rather than being dated to the tape, because the
+       field is still only partially populated (91 of the 117 notes of record carry
+       one, up from 71 of 115, 40 of 108 and 14 of 92 across the prior cycles) and
+       inferring a date from the tape cut would overstate how current the commentary
+       is. Coverage of notes that actually MOVED this period is complete, as it has
+       been for three cycles running, so the remaining gap is entirely older
+       commentary carried forward undated. */
+    const stamp=l.nupd?`<span class="nb-stamp">Updated ${fmtDate(l.nupd)}</span>`
+                      :`<span class="nb-stamp none">Date not recorded</span>`;
+    const note=gLine+(l.notes?`<div><b>Notes:</b> ${stamp} ${esc(l.notes)}</div>`:`<div><span class="empty">No asset note recorded.</span></div>`);
+    return `<tr class="loanrow${i%2?' alt':''}" data-id="${esc(l.id)}">
+      <td class="rn"><span class="rownum">${l.ord}</span></td>
+      <td class="ctr">${stPill(l.status)}</td>
+      <td class="ctr">${esc(l.orig)}</td><td class="bwr" title="${esc(l.borrower)}">${esc(trunc(l.borrower))}</td><td class="addr" title="${esc(l.address)}">${esc(l.address)}</td><td>${esc(l.city)}</td><td>${esc(l.state)}</td>
+      <td class="num">${fmt$(l.basis)}</td><td class="num">${fmt$(l.tla)}</td>
+      <td class="num">${pct(l.adv)}</td>
+      <td class="ctr mono">${fmtDate(l.maturity)}</td>
+      <td class="ctr">${fmtD2M(l.d2m)}</td><td class="ctr">${dqPill(l.dq)}</td>
+      <td class="ctr nupd">${l.nupd?`<span class="nu mono">${fmtDateS(l.nupd)}</span>`:'<span class="nu-none">—</span>'}</td></tr>
+    <tr class="noterow" data-for="${esc(l.id)}" style="display:none"><td colspan="14"><div class="notebox">${note}</div></td></tr>`;
+  }).join('');
+  body.querySelectorAll('tr.loanrow').forEach(tr=>{
+    let clickTimer=null;
+    tr.tabIndex=0;tr.setAttribute('aria-expanded','false');
+    const toggle=()=>{
+      const nr=tr.nextElementSibling;
+      if(nr&&nr.classList.contains('noterow')){
+        nr.style.display=nr.style.display==='none'?'':'none';
+        tr.setAttribute('aria-expanded',nr.style.display==='none'?'false':'true');
+      }
+    };
+    tr.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target===tr){e.preventDefault();toggle();}});
+    tr.addEventListener('click',()=>{
+      if(clickTimer)return; // second click of a dblclick will clear this
+      clickTimer=setTimeout(()=>{clickTimer=null;toggle();},230);
+    });
+    tr.addEventListener('dblclick',()=>{
+      if(clickTimer){clearTimeout(clickTimer);clickTimer=null;}
+      // ensure the note is visible too, then fly to the map
+      const nr=tr.nextElementSibling;
+      if(nr&&nr.classList.contains('noterow')&&nr.style.display==='none'){nr.style.display='';tr.setAttribute('aria-expanded','true');}
+      flyToLoan(tr.dataset.id);
+    });
+  });
+}
+/* Sort affordance + keyboard access. The tape was sortable but gave no indication
+   of the active column or direction, and the header cells were unreachable by keyboard. */
+function paintSort(){
+  document.querySelectorAll('#tape th[data-k]').forEach(th=>{
+    const active=th.dataset.k===sortK;
+    if(active)th.setAttribute('aria-sort',sortDir===1?'ascending':'descending');
+    else th.removeAttribute('aria-sort');
+    let sa=th.querySelector('.sa');
+    if(!sa){sa=document.createElement('span');sa.className='sa';th.appendChild(sa);}
+    sa.textContent=active?(sortDir===1?'▲':'▼'):'▵';
+  });
+}
+document.querySelectorAll('#tape th[data-k]').forEach(th=>{
+  th.setAttribute('tabindex','0');
+  th.setAttribute('role','columnheader');
+  const go=()=>{
+    const k=th.dataset.k;
+    // First click picks the direction that puts the interesting end on top:
+    // biggest exposure first for money/leverage columns, but *soonest* first for
+    // maturity — d2m used to open descending, burying the already-matured book,
+    // which is the end of that column a reviewer is actually looking for.
+    if(sortK===k)sortDir*=-1;
+    else{sortK=k;sortDir=['basis','tla','adv'].includes(k)?-1:1;}
+    renderTable();paintSort();
+  };
+  th.onclick=go;
+  th.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}};
+});
+
+function applyFilter(raw){
+  Q=parseQuery(raw);
+  renderTable();
+}
+searchEl.oninput=e=>applyFilter(e.target.value);
+searchEl.onkeydown=e=>{if(e.key==='Escape'&&searchEl.value){e.preventDefault();searchEl.value='';applyFilter('');}};
+clearEl.onclick=()=>{searchEl.value='';applyFilter('');searchEl.focus();};
+CH_REDRAW.tape=renderTable;
+renderTable();paintSort();
+}catch(e){
+  FAILURES.push(['Loan tape',e]);
+  const tb=document.getElementById('tapeBody');
+  if(tb)tb.innerHTML='<tr><td colspan="14" style="padding:22px;text-align:center;color:#7C8B9E;font-size:12px">'+MSG+'</td></tr>';
+}
+
+
+/* ===== PERIOD-OVER-PERIOD CHANGES =========================================
+   Everything below is derived by comparing LOANS against PRIOR at render time.
+   Nothing in this section is hand-keyed, so pointing LOANS at next week's tape
+   and PRIOR at this one regenerates the whole change log. Positions are named by
+   address / city / state / Basis throughout — no borrower or guarantor names —
+   so this section can be lifted into an external note without re-editing. */
+try{
+const PR={},NW={};
+PRIOR.forEach(p=>{PR[p.id]=p;}); LOANS.forEach(l=>{NW[l.id]=l;});
+/* 32-bit FNV-1a over whitespace-normalised text. Matches the hash the prior
+   snapshot was built with, so equal hashes mean an unchanged note. */
+const fnv=t=>{let h=0x811c9dc5;t=String(t==null?'':t).replace(/\s+/g,' ').trim();
+  for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}
+  return h.toString(16);};
+const EMPTY_NH=fnv('');
+const MATERIAL=10000;                      // basis-movement reporting floor
+const NEW_ORIG_DAYS=90;                    // additions originated inside this window read as new production
+const CUT_ISO={{CURR_ISO_JS}}, PRIOR_CUT_ISO={{PRIOR_ISO_JS}};   // the two tape cuts this section compares
+const dayDiff=(a,b)=>Math.round((Date.parse(a+'T00:00:00Z')-Date.parse(b+'T00:00:00Z'))/864e5);
+
+const cont=LOANS.filter(l=>PR[l.id]);
+const adds=LOANS.filter(l=>!PR[l.id]).sort((a,b)=>b.basis-a.basis);
+const rems=PRIOR.filter(p=>!NW[p.id]).sort((a,b)=>b.basis-a.basis);
+
+const priorBasis=sum(PRIOR,p=>p.basis), priorTla=sum(PRIOR,p=>p.tla);
+const addBasis=sum(adds,l=>l.basis),    remBasis=sum(rems,p=>p.basis);
+const contDelta=cont.reduce((s,l)=>s+(l.basis-PR[l.id].basis),0);
+const moves=cont.map(l=>({l,p:PR[l.id],d:l.basis-PR[l.id].basis})).filter(x=>Math.abs(x.d)>=0.005);
+
+const sgn=v=>(v<0?'−':'+')+'$'+Math.abs(Math.round(v)).toLocaleString();
+const sgnM=v=>(v<0?'−':'+')+'$'+(Math.abs(v)/1e6).toFixed(2)+'M';
+const cls=v=>v>0?'up':v<0?'dn':'';
+
+/* ---- roll-forward -------------------------------------------------------- */
+document.getElementById('chPeriod').textContent=NO_PRIOR?'First week on file \u2014 nothing to compare against yet':PRIOR_LABEL+' \u2192 '+CURR_LABEL;
+const steps=[
+ {k:'Basis at '+PRIOR_LABEL.replace(', 2026',''),v:fmtM(priorBasis),n:PRIOR.length+' positions',anchor:1},
+ {k:'Additions',v:sgnM(addBasis),c:'up',op:'+',n:adds.length+(adds.length===1?' position':' positions')},
+ {k:'Positions Removed',v:sgnM(-remBasis),c:'dn',op:'\u2212',n:rems.length+(rems.length===1?' position':' positions')},
+ {k:'Net Draws &amp; Paydowns',v:sgnM(contDelta),c:cls(contDelta),op:'\u00b1',n:moves.length+' of '+cont.length+' continuing moved'},
+ {k:'Basis at '+CURR_LABEL.replace(', 2026',''),v:fmtM(TOT),n:LOANS.length+' positions',anchor:1,op:'='}
+];
+document.getElementById('rollFwd').innerHTML=steps.map(s=>
+ `<div class="st${s.anchor?' anchor':''}">${s.op?`<span class="op">${s.op}</span>`:''}`
+ +`<div class="k">${s.k}</div><div class="v ${s.c||''}">${s.v}</div><div class="n">${s.n}</div></div>`).join('');
+
+const sevPrior=PRIOR.filter(p=>DQ_SEVERE[p.dq]), sevNow=dqSev;
+const matPrior=PRIOR.filter(p=>dayDiff(p.maturity,PRIOR_CUT_ISO)<0).length;
+const matNow=LOANS.filter(l=>l.d2m<0).length;
+/* Tints a period change by whether it moved the right way. good=-1 means lower is
+   better (already-matured count), +1 means higher is better, 0 means the measure
+   carries no direction at all (position count) and is left neutral. Written out
+   rather than inferred from a sign, because "up" here means "worse", and reading
+   that off a negated flag is exactly the kind of thing that silently inverts. */
+const delta=(now,was,good)=>{const d=now-was;
+  const c=(d===0||!good)?'flat':((d>0?1:-1)===good?'dn':'up');
+  return `<em class="${c}">${d>0?'+':d<0?'\u2212':''}${Math.abs(d).toLocaleString()}</em>`;};
+const mets=[
+ {k:'Positions',v:`<span class="was">${PRIOR.length}</span><span class="arw">\u2192</span>${LOANS.length} &nbsp;${delta(LOANS.length,PRIOR.length,0)}`},
+ {k:'Total Loan Amount',v:`<span class="was">${fmtM(priorTla)}</span><span class="arw">\u2192</span>${fmtM(sum(LOANS,l=>l.tla))}`},
+ {k:'Portfolio Advance %',v:`<span class="was">${(priorBasis/priorTla*100).toFixed(1)}%</span><span class="arw">\u2192</span>${(TOT/sum(LOANS,l=>l.tla)*100).toFixed(1)}%`},
+ {k:'90+ / FC / REO Basis',v:(()=>{const a=sum(sevPrior,p=>p.basis),b=sum(sevNow,l=>l.basis);
+   return `<span class="was">${fmtM(a)}</span><span class="arw">\u2192</span>${fmtM(b)} &nbsp;<em class="${b>a?'up':b<a?'dn':'flat'}">${sgnM(b-a)}</em>`
+     +`<span class="was"> &middot; ${(b/TOT*100).toFixed(1)}% of book</span>`;})()},
+ {k:'Already Matured',v:`<span class="was">${matPrior}</span><span class="arw">\u2192</span>${matNow} &nbsp;${delta(matNow,matPrior,-1)}<span class="was"> of ${LOANS.length}</span>`}
+];
+document.getElementById('rollFoot').innerHTML=mets.map(m=>
+ `<div class="m"><div class="mk">${m.k}</div><div class="mv">${m.v}</div></div>`).join('');
+
+/* ---- shared table plumbing ---------------------------------------------- */
+/* html() is handed (row,index) so each table can render its own 1..N handle in the
+   leading cell; the empty-state colspan is read off the live header count so it
+   tracks the added # column without being restated. */
+/* Optional 5th/6th arguments turn a table interactive:
+   stOf(row)  -> the row's Status, which feeds the toggle pills above the table;
+   noteOf(row)-> HTML for a hidden second row that one click opens and closes
+                 (Enter/Space too), so long text needs no wide column. */
+function fill(tid,rows,html,emptyMsg,stOf,noteOf){
+  const t=document.getElementById(tid),tb=t?t.querySelector('tbody'):null;
+  if(!tb)return;
+  const cols=t.querySelectorAll('thead th').length;
+  let pills=null;
+  if(stOf){
+    pills=document.getElementById(tid+'Pills');
+    if(!pills){pills=document.createElement('div');pills.className='legend chpills';pills.id=tid+'Pills';pills.hidden=true;
+      t.parentNode.insertBefore(pills,t);}
+  }
+  const draw=()=>{
+    let vis=rows;
+    if(stOf){
+      const counts={};rows.forEach(r=>{const k=stOf(r);counts[k]=(counts[k]||0)+1;});
+      paintPills(pills,tid,ST_ITEMS,counts);
+      const hid=hideSet(tid);
+      if(hid.size)vis=rows.filter(r=>!hid.has(stOf(r)));
+    }
+    if(!vis.length){
+      tb.innerHTML=`<tr><td colspan="${cols}"><div class="ch-none">${rows.length?'Every status is hidden. Use <b>Show all</b> above the table.':emptyMsg}</div></td></tr>`;
+      return;
+    }
+    tb.innerHTML=vis.map((r,i)=>{
+      const row=html(r,i);
+      if(!noteOf)return row;
+      return row.replace(/^\s*<tr>/,'<tr class="clickrow" tabindex="0" aria-expanded="false">')
+        +`<tr class="noterow" style="display:none"><td colspan="${cols}"><div class="notebox">${noteOf(r)}</div></td></tr>`;
+    }).join('');
+  };
+  if(stOf)CH_REDRAW[tid]=draw;
+  if(noteOf&&!tb.dataset.wired){
+    tb.dataset.wired='1';
+    const toggle=tr=>{const nr=tr.nextElementSibling;if(!nr||!nr.classList.contains('noterow'))return;
+      const open=nr.style.display==='none';nr.style.display=open?'':'none';tr.setAttribute('aria-expanded',open?'true':'false');};
+    tb.addEventListener('click',e=>{const tr=e.target.closest('tr.clickrow');if(tr)toggle(tr);});
+    tb.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('tr.clickrow')){e.preventDefault();toggle(e.target);}});
+  }
+  draw();
+}
+/* Expanded row for the change-log tables: just the note, as "Notes: ...". */
+const noteFor=l=>l.notes
+  ?`<div><b>Notes:</b> ${l.nupd?`<span class="nb-stamp">Updated ${fmtDate(l.nupd)}</span>`:'<span class="nb-stamp none">Date not recorded</span>'} ${esc(l.notes)}</div>`
+  :`<div><b>Notes:</b> <span class="empty">None recorded.</span></div>`;
+const rn=i=>`<td class="rn"><span class="rownum">${i+1}</span></td>`;
+const hint=(id,txt)=>{const e=document.getElementById(id);if(e)e.textContent=txt;};
+/* Card headers summarise a change set; when the set is empty the table's own
+   empty state carries the message, so the header steps aside rather than
+   reporting a row of zeroes. */
+const hintN=(id,n,txt)=>hint(id,n?txt:'None this period');
+
+/* ---- risk migrations ----------------------------------------------------- */
+/* One row per position whose Status or Delinquency moved. Direction is read off
+   ST_ORDER / DQ_ORDER, which are already ordered best-to-worst, and takes the
+   more severe of the two moves — so a position that is re-rated and re-bucketed
+   in opposite directions is reported by its worse leg rather than netting to
+   "unchanged". */
+const sIdx=s=>{const i=ST_ORDER.indexOf(s);return i<0?ST_ORDER.length:i;};
+const dIdx=s=>{const i=DQ_ORDER.indexOf(s);return i<0?DQ_ORDER.length:i;};
+const migs=cont.filter(l=>l.status!==PR[l.id].status||l.dq!==PR[l.id].dq).map(l=>{
+  const p=PR[l.id];
+  const ds=Math.sign(sIdx(l.status)-sIdx(p.status)), dd=Math.sign(dIdx(l.dq)-dIdx(p.dq));
+  const dir=Math.max(ds,dd)>0?1:Math.min(ds,dd)<0?-1:0;
+  return {l,p,ds,dd,dir};
+}).sort((a,b)=>(b.dir-a.dir)||(b.l.basis-a.l.basis));
+hintN('migHint',migs.length,migs.length+(migs.length===1?' position':' positions')+' re-rated or re-bucketed');
+const migCell=(from,to,ord)=>from===to
+  ? `<span class="mig"><span class="pill ${ord===ST_ORDER?(ST_CLS[to]||'p-other'):(DQ_CLS[to]||'p-other')}">${esc(to)}</span></span>`
+  : `<span class="mig"><span class="pill ${ord===ST_ORDER?(ST_CLS[from]||'p-other'):(DQ_CLS[from]||'p-other')}">${esc(from)}</span><span class="arw">\u2192</span><span class="pill ${ord===ST_ORDER?(ST_CLS[to]||'p-other'):(DQ_CLS[to]||'p-other')}">${esc(to)}</span></span>`;
+fill('tMig',migs,(m,i)=>`<tr>
+  ${rn(i)}
+  <td class="clip" title="${esc(m.l.address)}"><span class="ch-addr">${esc(m.l.address)}</span></td>
+  <td class="tb-loc clip">${esc(m.l.city)}</td>
+  <td class="tb-loc st">${esc(m.l.state)}</td>
+  <td class="num ctr">${fmt$(m.l.basis)}</td>
+  <td class="ctr">${migCell(m.p.status,m.l.status,ST_ORDER)}</td>
+  <td class="ctr">${migCell(m.p.dq,m.l.dq,DQ_ORDER)}</td>
+  <td class="ctr"><span class="dirc ${m.dir>0?'worse':m.dir<0?'better':'side'}">${m.dir>0?'Deteriorated':m.dir<0?'Improved':'Lateral'}</span></td></tr>`,
+ 'No status or delinquency changes this period.',m=>m.l.status,m=>noteFor(m.l));
+
+/* ---- additions ----------------------------------------------------------- */
+/* "New origination" vs "Newly reported" is decided by the origination date on the
+   tape, not assumed: a position booked inside the last 90 days is new production,
+   anything older is a position that appeared on the tape for the first time this
+   period and should be diligenced as a transfer-in rather than a new deal. */
+const addNew=adds.filter(l=>l.orig_date&&dayDiff(CUT_ISO,l.orig_date)<=NEW_ORIG_DAYS);
+hintN('addHint',adds.length,adds.length+(adds.length===1?' position · ':' positions · ')+fmtM(addBasis)+' Basis on '+fmtM(sum(adds,l=>l.tla))+' TLA');
+fill('tAdd',adds,(l,i)=>{
+  const isNew=addNew.indexOf(l)>-1;
+  return `<tr>
+  ${rn(i)}
+  <td class="clip" title="${esc(l.address)}"><span class="ch-addr">${esc(l.address)}</span></td>
+  <td class="tb-loc clip">${esc(l.city)}</td>
+  <td class="tb-loc st">${esc(l.state)}</td>
+  <td class="num ctr">${fmt$(l.basis)}</td>
+  <td class="num ctr">${fmt$(l.tla)}</td>
+  <td class="num ctr">${pct(l.adv)}</td>
+  <td class="ctr mono">${fmtDate(l.maturity)}</td>
+  <td class="clip" title="${esc(l.orig)}">${esc(l.orig)}</td>
+  <td class="ctr"><span class="ch-tag ${isNew?'new':''}" title="Originated ${fmtDate(l.orig_date)}">${isNew?'New origination':'Newly reported'}</span></td></tr>`;},
+ 'No positions added this period.',l=>l.status,noteFor);
+
+/* ---- removals ------------------------------------------------------------ */
+/* The tape carries no disposition field, so this reports only that the position
+   is no longer on it. Payoff, sale, transfer and repurchase all look identical
+   from here and are deliberately not inferred. */
+hintN('remHint',rems.length,rems.length+(rems.length===1?' position · ':' positions · ')+fmtM(remBasis)+' Basis');
+fill('tRem',rems,(p,i)=>`<tr>
+  ${rn(i)}
+  <td class="clip" title="${esc(p.address)}"><span class="ch-addr">${esc(p.address)}</span></td>
+  <td class="tb-loc clip">${esc(p.city)}</td>
+  <td class="tb-loc st">${esc(p.state)}</td>
+  <td class="ctr"><span class="pill ${ST_CLS[p.status]||'p-other'}">${esc(p.status)}</span></td>
+  <td class="num ctr">${fmt$(p.basis)}</td>
+  <td class="num ctr">${fmt$(p.tla)}</td></tr>`,
+ 'No positions removed this period.',p=>p.status);
+
+/* ---- maturity changes ---------------------------------------------------- */
+const matMoves=cont.filter(l=>l.maturity!==PR[l.id].maturity)
+  .map(l=>({l,p:PR[l.id],d:dayDiff(l.maturity,PR[l.id].maturity)}))
+  .sort((a,b)=>b.l.basis-a.l.basis);
+hintN('matHint',matMoves.length,matMoves.length+(matMoves.length===1?' position':' positions'));
+fill('tMat',matMoves,(m,i)=>`<tr>
+  ${rn(i)}
+  <td class="clip" title="${esc(m.l.address)}"><span class="ch-addr">${esc(m.l.address)}</span></td>
+  <td class="tb-loc clip">${esc(m.l.city)}</td>
+  <td class="tb-loc st">${esc(m.l.state)}</td>
+  <td class="num ctr">${fmt$(m.l.basis)}</td>
+  <td class="ctr mono dpair"><span class="mig"><span style="color:var(--muted)">${fmtDate(m.p.maturity)}</span><span class="arw">\u2192</span>${fmtDate(m.l.maturity)}</span></td>
+  <td class="num ctr"><span class="chg-num ${m.d>0?'up':'dn'}">${m.d>0?'+':'\u2212'}${Math.abs(m.d)}d</span></td></tr>`,
+ 'No maturity dates restated this period.',m=>m.l.status,m=>noteFor(m.l));
+
+/* ---- basis movements ----------------------------------------------------- */
+const big=moves.filter(x=>Math.abs(x.d)>=MATERIAL).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d));
+hintN('movHint',moves.length,`${moves.length} of ${cont.length} continuing positions moved · net ${sgnM(contDelta)}`);
+fill('tMov',big,(x,i)=>`<tr>
+  ${rn(i)}
+  <td class="clip" title="${esc(x.l.address)}"><span class="ch-addr">${esc(x.l.address)}</span></td>
+  <td class="tb-loc clip">${esc(x.l.city)}</td>
+  <td class="tb-loc st">${esc(x.l.state)}</td>
+  <td class="num ctr"><span class="chg-num ${cls(x.d)}">${sgn(x.d)}</span></td>
+  <td class="num ctr">${fmt$(x.p.basis)}</td>
+  <td class="num ctr">${fmt$(x.l.basis)}</td>
+  <td class="num ctr">${pct(x.l.adv)}</td>
+  <td class="ctr"><span class="pill ${ST_CLS[x.l.status]||'p-other'}">${esc(x.l.status)}</span></td></tr>`,
+ 'No Basis movement on continuing positions.',x=>x.l.status,x=>noteFor(x.l));
+
+/* ---- commentary ---------------------------------------------------------- */
+/* Detected by comparing the hash of the current note against the hash carried in
+   the prior snapshot, so this reports genuine text changes, not re-keyed rows.
+   Note the divergence between this count and the "Notes Last Updated" field:
+   the field is new this cycle and is populated on a subset of the notes that
+   actually moved, so it is reported as supplied and never back-filled. */
+const cmts=cont.map(l=>{const p=PR[l.id];const nh=fnv(l.notes);
+  if(nh===p.nh)return null;
+  const had=p.nh!==EMPTY_NH, has=nh!==EMPTY_NH;
+  return {l,kind:!had&&has?'New':had&&!has?'Removed':'Revised'};
+}).filter(Boolean).sort((a,b)=>b.l.basis-a.l.basis);
+hintN('cmtHint',cmts.length,cmts.length+(cmts.length===1?' position · ':' positions · ')+fmtM(sum(cmts,c=>c.l.basis))+' Basis');
+fill('tCmt',cmts,(c,i)=>`<tr>
+  ${rn(i)}
+  <td class="clip" title="${esc(c.l.address)}"><span class="ch-addr">${esc(c.l.address)}</span></td>
+  <td class="tb-loc clip">${esc(c.l.city)}</td>
+  <td class="tb-loc st">${esc(c.l.state)}</td>
+  <td class="num ctr">${fmt$(c.l.basis)}</td>
+  <td class="ctr"><span class="ch-tag${c.kind==='New'?' new':''}">${c.kind}</span></td>
+  <td class="ctr">${c.l.nupd?`<span class="nu mono">${fmtDateS(c.l.nupd)}</span>`:'<span class="nu-none">\u2014</span>'}</td>
+  <td class="ch-note" title="${esc(c.l.notes)}">${esc(trunc(c.l.notes,150))}</td></tr>`,
+ 'No commentary changed this period.',c=>c.l.status,c=>noteFor(c.l));
+
+}catch(e){
+  FAILURES.push(['Period-over-period changes',e]);
+  ['tMig','tAdd','tRem','tMat','tMov','tCmt'].forEach(id=>{
+    const t=document.getElementById(id),tb=t?t.querySelector('tbody'):null;
+    if(tb)tb.innerHTML='<tr><td colspan="'+t.querySelectorAll('thead th').length+'"><div class="ch-none">'+MSG+'</div></td></tr>';
+  });
+  stamp(document.getElementById('rollFwd'));
+}
+
+/* ===== boot verification: clear or rewrite the banner ===== */
+(function(){
+  const w=document.getElementById('bootWarn');
+  if(!w)return;
+  if(!FAILURES.length){w.remove();return;}
+  const missing=[];
+  if(typeof mapboxgl==='undefined')missing.push('Mapbox GL (mapping)');
+  if(typeof Chart==='undefined')missing.push('Chart.js (charts)');
+  // collapse the six per-chart failures into one readable item
+  const charts=FAILURES.filter(f=>f[0].indexOf('Chart')===0).length;
+  const names=FAILURES.filter(f=>f[0].indexOf('Chart')!==0).map(f=>f[0]);
+  if(charts)names.unshift('concentration charts');
+  w.innerHTML='<div style="font-weight:600;margin-bottom:5px;letter-spacing:.01em">'
+    +'This exhibit loaded with errors \u2014 some sections are incomplete.</div>'
+    +'Could not render: '+names.join(', ')+'.'
+    +(missing.length
+      ? ' Required libraries were not reachable from this machine ('+missing.join(', ')+'), which normally indicates a network or firewall restriction. Request the hosted link instead of the attachment.'
+      : ' Open the browser console (F12) for details.')
+    +' Portfolio totals and any sections that did render are accurate as of the stated date.';
+  FAILURES.forEach(f=>console.error('[CREMX render failure]',f[0],f[1]));
+})();
+</script>
+<!--UPLOAD_UI-->
+</body>
+</html>

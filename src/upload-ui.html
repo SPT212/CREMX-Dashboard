@@ -1,0 +1,128 @@
+<style>
+.upbtn{position:fixed;top:14px;right:16px;z-index:20;background:var(--ink,#16283F);color:#fff;border:none;border-radius:7px;padding:8px 14px;
+  font:600 12px/1 'Inter','Helvetica Neue',Arial,sans-serif;cursor:pointer;box-shadow:0 2px 8px rgba(22,40,63,.25)}
+.upbtn:hover{background:var(--blue-d,#1F5589)}
+.upbtn[hidden]{display:none}
+dialog.updlg{border:1px solid var(--line2,#DDE3EB);border-radius:12px;padding:0;width:min(520px,94vw);color:var(--ink,#16283F);
+  font:400 13px/1.5 'Inter','Helvetica Neue',Arial,sans-serif;box-shadow:0 24px 60px rgba(22,40,63,.3)}
+dialog.updlg::backdrop{background:rgba(22,40,63,.45)}
+dialog.updlg h3{margin:0;padding:16px 20px;font-size:14px;border-bottom:1px solid var(--line,#E9EDF2)}
+dialog.updlg .bd{padding:16px 20px;display:grid;gap:12px}
+dialog.updlg label{display:grid;gap:4px;font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--muted,#7C8B9E)}
+dialog.updlg input{font:400 13px 'Inter',Arial,sans-serif;padding:8px 10px;border:1px solid var(--line2,#DDE3EB);border-radius:7px;color:var(--ink,#16283F);text-transform:none;letter-spacing:0}
+dialog.updlg .hint{font-size:11px;color:var(--muted,#7C8B9E);text-transform:none;letter-spacing:0;font-weight:400}
+dialog.updlg .row{display:flex;gap:8px;flex-wrap:wrap;padding:12px 20px 16px;border-top:1px solid var(--line,#E9EDF2);justify-content:flex-end}
+dialog.updlg button{font:600 12px 'Inter',Arial,sans-serif;padding:8px 14px;border-radius:7px;border:1px solid var(--line2,#DDE3EB);background:#fff;color:var(--ink,#16283F);cursor:pointer}
+dialog.updlg button.go{background:var(--blue,#2C6FB5);border-color:var(--blue,#2C6FB5);color:#fff}
+dialog.updlg button:disabled{opacity:.5;cursor:default}
+#upMsg{min-height:18px;font-size:12px}
+#upMsg.err{color:#A31F1F}#upMsg.ok{color:#14603A}
+#histDlg{width:min(980px,96vw)}
+#histDlg .tw{max-height:60vh;overflow:auto;padding:0 20px}
+#histDlg table{width:100%;border-collapse:collapse;font-size:11.5px}
+#histDlg th{position:sticky;top:0;background:#fff;text-align:left;padding:8px 6px;border-bottom:1px solid var(--line2,#DDE3EB);font-size:10px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted,#7C8B9E)}
+#histDlg td{padding:7px 6px;border-bottom:1px solid var(--line,#E9EDF2);vertical-align:top}
+#histDlg .okc{color:#14603A;font-weight:600}#histDlg .rej{color:#A31F1F;font-weight:600}
+@media print{.upbtn{display:none!important}}
+</style>
+<button type="button" class="upbtn" id="upOpen" hidden>Upload new packet</button>
+<dialog class="updlg" id="upDlg">
+  <form id="upForm" method="dialog">
+    <h3>Upload new packet</h3>
+    <div class="bd">
+      <label>Loan tape (.xlsx)<input type="file" id="upFile" accept=".xlsx"></label>
+      <label>As-of date (optional)<input type="date" id="upAsOf">
+        <span class="hint">Leave empty to read the date from the file name, e.g. CREMX_Loan_Portfolio_10_09_2026.xlsx.</span></label>
+      <label>Upload passphrase<input type="password" id="upPass" autocomplete="off"></label>
+      <div id="upMsg" role="status"></div>
+    </div>
+    <div class="row">
+      <button type="button" id="upUndo">Undo last upload</button>
+      <button type="button" id="upHist">Upload history</button>
+      <button type="button" id="upCancel">Cancel</button>
+      <button type="submit" class="go" id="upGo">Upload</button>
+    </div>
+  </form>
+</dialog>
+<dialog class="updlg" id="histDlg">
+  <h3>Upload history</h3>
+  <div class="tw"><table><thead><tr><th>When</th><th>What</th><th>Week</th><th>File</th><th>Result</th><th></th></tr></thead><tbody id="histBody"></tbody></table></div>
+  <div class="row"><button type="button" id="histClose">Close</button></div>
+</dialog>
+<script>
+(function(){
+  var CTX=/*@@UPLOAD_CTX@@*/{"asOf":null,"canUpload":false};
+  var $=function(id){return document.getElementById(id);};
+  if(!CTX.canUpload||location.protocol.indexOf('http')!==0)return;           // never in a local copy
+  var open=$('upOpen'),dlg=$('upDlg'),form=$('upForm'),file=$('upFile'),asOfF=$('upAsOf'),pass=$('upPass'),msg=$('upMsg');
+  var btns=['upUndo','upHist','upCancel','upGo'].map($);
+  open.hidden=false;
+  function say(t,c){msg.textContent=t;msg.className=c||'';}
+  function busy(b){btns.forEach(function(x){x.disabled=b;});}
+  open.onclick=function(){say('');dlg.showModal();};
+  $('upCancel').onclick=function(){dlg.close();};
+  $('histClose').onclick=function(){$('histDlg').close();};
+  var UNREADABLE=function(status){return {ok:false,message:'The host returned an error (HTTP '+status+') instead of an answer, so the action may or may not have gone through. Wait a few seconds, reload the page and check Upload history before trying again.'};};
+  async function post(fd){
+    var res=await fetch('/api/upload',{method:'POST',body:fd});
+    // A reply that is not ours (a 5xx from the host) can arrive AFTER the data was saved: never claim "nothing changed".
+    return {res:res,j:await res.json().catch(function(){return UNREADABLE(res.status);})};
+  }
+  async function send(fd,wait){
+    busy(true);say(wait);
+    try{
+      var r=await post(fd),j=r.j;
+      if(j.needsConfirm){
+        if(confirm(j.message)){fd.set('confirmChange',j.confirmToken);return send(fd,wait);}
+        say('Cancelled. Nothing was changed.','err');busy(false);return;
+      }
+      if(!j.ok){say(j.message,'err');busy(false);return;}
+      say(j.message+' Reloading…','ok');setTimeout(function(){location.reload();},2000);
+    }catch(e){say('Could not reach the site ('+e.message+'). Nothing was changed.','err');busy(false);}
+  }
+  function base(action){var fd=new FormData();fd.set('action',action);fd.set('passphrase',pass.value);return fd;}
+  form.onsubmit=function(e){
+    e.preventDefault();
+    if(!file.files[0])return say('Choose a workbook first.','err');
+    if(!pass.value)return say('Type the upload passphrase.','err');
+    var m=/(\d{1,2})[._-](\d{1,2})[._-](\d{4}|\d{2})(?!\d)/.exec(file.files[0].name);          // (\d{4}|\d{2}) order matters, or 2026 reads as 2020
+    var fileAsOf=m?(m[3].length===2?'20'+m[3]:m[3])+'-'+('0'+m[1]).slice(-2)+'-'+('0'+m[2]).slice(-2):null;
+    var asOf=asOfF.value||fileAsOf;
+    if(asOf&&CTX.asOf&&asOf<CTX.asOf&&!confirm('This file is dated '+asOf+', before the week now shown ('+CTX.asOf+'). It will be filed in as history and will NOT change what the dashboard displays. Continue?'))return;
+    var fd=base('upload');fd.set('file',file.files[0]);
+    if(asOfF.value)fd.set('asOf',asOfF.value);
+    send(fd,'Uploading and checking the workbook…');
+  };
+  $('upUndo').onclick=function(){
+    if(!pass.value)return say('Type the upload passphrase.','err');
+    if(!confirm('Remove the latest uploaded week'+(CTX.asOf?' ('+CTX.asOf+')':'')+'? The dashboard goes back to the week before it.'))return;
+    send(base('undo'),'Removing the latest week…');
+  };
+  var esc=function(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+  $('upHist').onclick=async function(){
+    if(!pass.value)return say('Type the upload passphrase.','err');
+    busy(true);say('Loading history…');
+    try{
+      var r=await post(base('log'));
+      if(!r.j.ok){say(r.j.message,'err');return;}
+      $('histBody').innerHTML=r.j.log.map(function(x){
+        var res=x.status>=400||x.result==='rejected'?'<span class="rej">Rejected</span> '+esc(x.message):'<span class="okc">OK</span> '+esc(x.message||'');
+        return '<tr><td>'+esc(new Date(x.at).toLocaleString())+'</td><td>'+esc(x.verb||x.action)+'</td><td>'+esc(x.asOf||'')+'</td><td>'+esc(x.file||'')+'</td><td>'+res+'</td><td>'
+          +(x.fileKey?'<button type="button" data-key="'+esc(x.fileKey)+'" data-name="'+esc(x.file||'packet.xlsx')+'">Download</button>':'')+'</td></tr>';}).join('')
+        ||'<tr><td colspan="6">Nothing has been uploaded yet.</td></tr>';
+      say('');$('histDlg').showModal();
+    }catch(e){say('Could not reach the site ('+e.message+').','err');}
+    finally{busy(false);}
+  };
+  $('histBody').onclick=async function(e){
+    var b=e.target.closest('button[data-key]');if(!b)return;
+    var fd=base('file');fd.set('key',b.dataset.key);
+    try{
+      var res=await fetch('/api/upload',{method:'POST',body:fd});
+      if(!res.ok){var j=await res.json().catch(function(){return UNREADABLE(res.status);});alert(j.message);return;}
+      var url=URL.createObjectURL(await res.blob()),a=document.createElement('a');
+      a.href=url;a.download=b.dataset.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},4000);
+    }catch(err){alert('Could not download the file ('+err.message+').');}
+  };
+})();
+</script>
