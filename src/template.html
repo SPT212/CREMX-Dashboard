@@ -822,8 +822,8 @@ mapEl.addEventListener('mouseleave',()=>map.scrollZoom.disable());
 let mapNoted=false;
 map.on('error',e=>{
   const st=e&&e.error&&e.error.status;
-  // terrain is optional decoration: if Mapbox refuses it, 3D stays flat and the map keeps working
-  if(e&&e.sourceId==='mapbox-dem'){console.warn('Mapbox terrain unavailable (HTTP '+st+'); 3D stays flat.');return;}
+  // terrain and 3D buildings are optional decoration: if Mapbox refuses them, 3D just goes without and the map keeps working
+  if(e&&(e.sourceId==='mapbox-dem'||e.sourceId==='mb-streets')){console.warn('Mapbox '+e.sourceId+' unavailable (HTTP '+st+'); 3D goes without it.');return;}
   if((st===401||st===403)&&!mapNoted){mapNoted=true;
     const n=document.createElement('div');n.className='map-note';
     n.textContent='Mapbox refused the request (HTTP '+st+'). Check that MAPBOX_TOKEN is a valid public token and that its URL restriction includes this page’s address.';
@@ -923,6 +923,7 @@ function apply3D(){
   // terrain is only requested once 3D is on, so a 2D page never asks Mapbox for it
   if(is3D&&!map.getSource('mapbox-dem'))map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512,maxzoom:14});
   map.setTerrain(is3D?{source:'mapbox-dem',exaggeration:1.25}:null);
+  if(!is3D&&!map.getLayer('bld3d'))return;                // buildings data is only requested once 3D is on
   if(!map.getSource('mb-streets'))map.addSource('mb-streets',{type:'vector',url:'mapbox://mapbox.mapbox-streets-v8'});
   if(!map.getLayer('bld3d'))map.addLayer({id:'bld3d',type:'fill-extrusion',source:'mb-streets','source-layer':'building',minzoom:14,
       filter:['==',['get','extrude'],'true'],layout:{visibility:'none'},
