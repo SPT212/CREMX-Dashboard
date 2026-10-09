@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>CREMX Portfolio Review</title>
+<style>
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#EDF0F4;font:400 14px/1.5 'Inter','Helvetica Neue',Arial,sans-serif;color:#16283F}
+form{background:#fff;border:1px solid #DDE3EB;border-radius:12px;padding:28px 28px 24px;width:min(360px,92vw);box-shadow:0 12px 36px rgba(22,40,63,.12)}
+h1{font-size:16px;margin:0 0 4px}p{margin:0 0 16px;color:#7C8B9E;font-size:12px}
+input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #DDE3EB;border-radius:8px;font:inherit}
+button{margin-top:12px;width:100%;padding:10px;border:none;border-radius:8px;background:#2C6FB5;color:#fff;font:600 13px inherit;cursor:pointer}
+button:disabled{opacity:.6}
+#err{min-height:18px;margin-top:10px;font-size:12px;color:#A31F1F}
+</style>
+</head>
+<body>
+<form id="f" autocomplete="off">
+  <h1>CREMX Portfolio Review</h1>
+  <p>Enter the password to open the dashboard.</p>
+  <input type="password" id="pw" aria-label="Password" autofocus>
+  <button type="submit" id="go">Open</button>
+  <div id="err" role="alert"></div>
+</form>
+<script type="application/json" id="payload">{{PAYLOAD}}</script>
+<script>
+(function(){
+  var P=JSON.parse(document.getElementById('payload').textContent);
+  var unb64=function(s){return Uint8Array.from(atob(s),function(c){return c.charCodeAt(0);});};
+  var b64=function(u){var s='';for(var i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s);};
+  // The salt is stable across uploads, so the key remembered for this tab stays valid after every upload.
+  var SK='cremx_k_'+P.salt.slice(0,12);
+  var loaded=new Promise(function(r){if(document.readyState==='complete')r();else window.addEventListener('load',r);});
+  async function show(key){
+    var plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(P.iv)},key,unb64(P.data));
+    var html=new TextDecoder().decode(plain);
+    // Must wait for the window load event: waiting only for readyState !== 'loading' silently corrupts the written page.
+    await loaded;
+    document.open();document.write(html);document.close();
+  }
+  async function derive(pw){
+    var base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+    return crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:unb64(P.salt),iterations:P.iter},base,{name:'AES-GCM',length:256},true,['decrypt']);
+  }
+  try{
+    var saved=sessionStorage.getItem(SK);
+    if(saved){
+      crypto.subtle.importKey('raw',unb64(saved),'AES-GCM',false,['decrypt']).then(show).catch(function(){sessionStorage.removeItem(SK);});
+    }
+  }catch(e){}
+  document.getElementById('f').onsubmit=async function(e){
+    e.preventDefault();
+    var go=document.getElementById('go'),err=document.getElementById('err');
+    go.disabled=true;err.textContent='';
+    try{
+      var key=await derive(document.getElementById('pw').value);
+      try{sessionStorage.setItem(SK,b64(new Uint8Array(await crypto.subtle.exportKey('raw',key))));}catch(e2){}
+      await show(key);
+    }catch(x){err.textContent='Incorrect password.';go.disabled=false;}
+  };
+})();
+</script>
+</body>
+</html>

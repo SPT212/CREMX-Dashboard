@@ -1,0 +1,14 @@
+[build]
+  publish = "public"                 # only robots.txt: the page itself comes from the function, so no static index.html can shadow it
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Set in Site configuration > Environment variables (never in this file):
+#   DASHBOARD_PASSWORD   viewer password, 16+ characters (encrypts the page)
+#   UPLOAD_PASSPHRASE    separate secret that gates upload, undo, history and file download
+# Optional:
+#   PBKDF2_ITERATIONS    default 250000 (Cloudflare needs 100000 or less)
+#   MIN_PASSWORD_LENGTH  lowers the 16-character minimum
+#   OPEN_VIEW            "1" serves the page unencrypted with no viewer login (off by default)
