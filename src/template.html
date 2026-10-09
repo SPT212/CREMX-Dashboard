@@ -806,10 +806,10 @@ if(typeof mapboxgl==='undefined'||!/^pk\./.test(MAPBOX_TOKEN)){
 mapboxgl.accessToken=MAPBOX_TOKEN;
 const STYLES={street:'mapbox://styles/mapbox/streets-v12',
               sat:'mapbox://styles/mapbox/satellite-streets-v12',
-              std:'mapbox://styles/mapbox/standard'};          // Standard = the lit 3D buildings view on the street map
+              std:'mapbox://styles/mapbox/standard',           // Standard = the lit 3D buildings view on the street map
+              stdSat:'mapbox://styles/mapbox/standard-satellite'};   // the same 3D view over satellite imagery
 let curBase='street',is3D=false,colorMode='status',sizeByBasis=true,useCluster=false,popup=null,byKey={};
-const standard=()=>curBase==='street'&&is3D;
-const styleFor=()=>standard()?STYLES.std:STYLES[curBase];
+const styleFor=()=>is3D?(curBase==='street'?STYLES.std:STYLES.stdSat):STYLES[curBase];
 const mapEl=document.getElementById('map');
 const map=new mapboxgl.Map({container:'map',style:STYLES.street,center:[-96,37.8],zoom:3.6,
   projection:'mercator',maxPitch:75,attributionControl:true});
@@ -822,8 +822,6 @@ mapEl.addEventListener('mouseleave',()=>map.scrollZoom.disable());
 let mapNoted=false;
 map.on('error',e=>{
   const st=e&&e.error&&e.error.status;
-  // terrain and 3D buildings are optional decoration: if Mapbox refuses them, 3D just goes without and the map keeps working
-  if(e&&(e.sourceId==='mapbox-dem'||e.sourceId==='mb-streets')){console.warn('Mapbox '+e.sourceId+' unavailable (HTTP '+st+'); 3D goes without it.');return;}
   if((st===401||st===403)&&!mapNoted){mapNoted=true;
     const n=document.createElement('div');n.className='map-note';
     n.textContent='Mapbox refused the request (HTTP '+st+'). Check that MAPBOX_TOKEN is a valid public token and that its URL restriction includes this page’s address.';
@@ -914,28 +912,10 @@ function addPoints(){
 const drawMarkers=()=>{const s=map.getSource('pos');if(s)s.setData(features());};
 
 /* ---- 3D ---------------------------------------------------------------------
-   Street + 3D swaps to Mapbox's Standard style (lit buildings, landmarks, trees).
-   Satellite + 3D keeps the imagery and adds terrain, shaded building blocks and sky.
-   setStyle() removes every custom source and layer, so all of this is rebuilt on
-   'style.load' and each step checks whether it already exists. */
-const firstSymbolId=()=>{const ls=map.getStyle().layers;for(const l of ls){if(l.type==='symbol')return l.id;}return undefined;};
-function apply3D(){
-  // terrain is only requested once 3D is on, so a 2D page never asks Mapbox for it
-  if(is3D&&!map.getSource('mapbox-dem'))map.addSource('mapbox-dem',{type:'raster-dem',url:'mapbox://mapbox.mapbox-terrain-dem-v1',tileSize:512,maxzoom:14});
-  map.setTerrain(is3D?{source:'mapbox-dem',exaggeration:1.25}:null);
-  if(!is3D&&!map.getLayer('bld3d'))return;                // buildings data is only requested once 3D is on
-  if(!map.getSource('mb-streets'))map.addSource('mb-streets',{type:'vector',url:'mapbox://mapbox.mapbox-streets-v8'});
-  if(!map.getLayer('bld3d'))map.addLayer({id:'bld3d',type:'fill-extrusion',source:'mb-streets','source-layer':'building',minzoom:14,
-      filter:['==',['get','extrude'],'true'],layout:{visibility:'none'},
-      paint:{'fill-extrusion-vertical-gradient':true,
-             'fill-extrusion-color':['interpolate',['linear'],['get','height'],0,'#D9DFE7',40,'#B7C1CE',120,'#8E9CB0',300,'#66768D'],
-             'fill-extrusion-height':['get','height'],'fill-extrusion-base':['get','min_height'],'fill-extrusion-opacity':.88}},
-    firstSymbolId());                                    // below the labels so labels stay readable
-  if(!map.getLayer('sky3d'))map.addLayer({id:'sky3d',type:'sky',layout:{visibility:'none'},
-      paint:{'sky-type':'atmosphere','sky-atmosphere-sun':[0,0],'sky-atmosphere-sun-intensity':8}});
-  ['bld3d','sky3d'].forEach(id=>map.setLayoutProperty(id,'visibility',is3D?'visible':'none'));
-}
-function setupLayers(){if(!standard())apply3D();addPoints();}
+   3D swaps to Mapbox's Standard style (lit buildings, landmarks, trees): plain Standard on
+   the street map, Standard Satellite on the imagery. setStyle() removes every custom source
+   and layer, so the positions are re-added on 'style.load'. */
+function setupLayers(){addPoints();}
 map.on('style.load',setupLayers);
 
 function setBase(b){
@@ -949,8 +929,7 @@ function set3D(on){
   is3D=on;
   document.querySelectorAll('#viewSeg button').forEach(x=>x.classList.toggle('active',(x.dataset.v==='3d')===on));
   syncSeg('#viewSeg');
-  if(curBase==='street')map.setStyle(styleFor(),{diff:false});
-  else if(map.isStyleLoaded())apply3D();
+  map.setStyle(styleFor(),{diff:false});
   map.easeTo({pitch:on?62:0,duration:900});
 }
 
