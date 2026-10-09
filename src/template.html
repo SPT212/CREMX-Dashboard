@@ -95,6 +95,7 @@ h1{font-size:30px;font-weight:300;letter-spacing:-.6px;color:var(--ink);line-hei
 .chpills[hidden]{display:none}                       /* .legend sets display:flex, which would override [hidden] */
 .legend .lgi{display:inline-flex;align-items:center;gap:0;border:1px solid var(--line2);border-radius:20px;background:var(--card);transition:all .12s}
 .legend .lg{display:inline-flex;align-items:center;gap:6px;background:none;border:none;padding:4px 6px 4px 9px;font:400 11px var(--sans);color:var(--ink2);cursor:pointer;border-radius:20px}
+.legend .lg:last-child{padding-right:9px}                 /* pill without an "only" part */
 .legend .lg .dot{background:var(--c)}
 .legend .lg-n{color:var(--muted);font-variant-numeric:tabular-nums;font-size:10.5px}
 .legend .lgi.off{background:var(--card2);border-style:dashed}
@@ -719,11 +720,12 @@ const LEGENDS={
 /* ===== Toggle pills =======================================================
    One hide-set per surface (loan tape, each change-log table, each map colour
    mode), one painter, one document-level click handler. A hidden pill is dashed
-   and struck through; "only" isolates one item; "Show all" appears only while
-   something is hidden. Counts are of the rows the pill would show. */
+   and struck through; "only" (map and loan tape, not the change log) isolates one
+   item; "Show all" appears only while something is hidden. Counts are of the rows
+   the pill would show. */
 const CH_HIDE={},CH_LIST={},CH_REDRAW={};
 const hideSet=k=>CH_HIDE[k]||(CH_HIDE[k]=new Set());
-function paintPills(el,key,items,counts,extra){            // items: [[label,color],...]
+function paintPills(el,key,items,counts,extra,withOnly=true){   // items: [[label,color],...]
   if(!el)return;
   const hid=hideSet(key),shown=items.filter(it=>counts[it[0]]||hid.has(it[0]));
   CH_LIST[key]=shown.map(it=>it[0]);
@@ -731,7 +733,7 @@ function paintPills(el,key,items,counts,extra){            // items: [[label,col
   el.innerHTML=shown.map(it=>{const s=it[0],on=!hid.has(s);
     return `<span class="lgi${on?'':' off'}"><button type="button" class="lg" data-ch="${esc(key)}" data-st="${esc(s)}" aria-pressed="${on}">`
       +`<i class="dot" style="--c:${it[1]}"></i>${esc(s)}<span class="lg-n">${counts[s]||0}</span></button>`
-      +`<button type="button" class="lg-only" data-ch="${esc(key)}" data-only="${esc(s)}" aria-label="Show only ${esc(s)}">only</button></span>`;}).join('')
+      +(withOnly?`<button type="button" class="lg-only" data-ch="${esc(key)}" data-only="${esc(s)}" aria-label="Show only ${esc(s)}">only</button>`:'')+`</span>`;}).join('')
     +(hid.size?`<button type="button" class="lg-all" data-ch="${esc(key)}" data-all="1">Show all</button>`:'')+(extra||'');
 }
 document.addEventListener('click',e=>{
@@ -1545,7 +1547,7 @@ function fill(tid,rows,html,emptyMsg,stOf,noteOf){
     let vis=rows;
     if(stOf){
       const counts={};rows.forEach(r=>{const k=stOf(r);counts[k]=(counts[k]||0)+1;});
-      paintPills(pills,tid,ST_ITEMS,counts);
+      paintPills(pills,tid,ST_ITEMS,counts,'',false);
       const hid=hideSet(tid);
       if(hid.size)vis=rows.filter(r=>!hid.has(stOf(r)));
     }
